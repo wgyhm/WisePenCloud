@@ -2,8 +2,12 @@ package com.oriole.wisepen.common.web.interceptor;
 
 import cn.dev33.satoken.stp.StpUtil;
 import cn.hutool.core.util.StrUtil;
+import com.oriole.wisepen.common.core.constant.CommonConstants;
 import com.oriole.wisepen.common.core.constant.SecurityConstants;
+import com.oriole.wisepen.common.core.context.GrayContextHolder;
 import com.oriole.wisepen.common.core.context.SecurityContextHolder;
+
+import org.springframework.util.StringUtils;
 import org.springframework.web.servlet.HandlerInterceptor;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -42,11 +46,17 @@ public class HeaderInterceptor implements HandlerInterceptor {
         //     throw new AccessDeniedException("非法访问，请通过网关请求");
         // }
 
+        String developer = request.getHeader(CommonConstants.GRAY_HEADER_DEV_KEY);
+        if (StringUtils.hasText(developer)) {
+            GrayContextHolder.setDeveloperTag(developer);
+        }
+
         return true;
     }
 
     @Override
     public void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex) {
+        GrayContextHolder.clear();
         SecurityContextHolder.remove();
     }
 }
