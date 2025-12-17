@@ -12,5 +12,16 @@ spring:
         server-addr: wisepen-dev-server:8848 # Nacos 配置中心地址
         file-extension: yaml # 配置文件后缀
         group: DEFAULT_GROUP
+        shared-configs:
+          - data-id: wisepen-common.yaml
+            group: DEFAULT_GROUP
+            refresh: true
+    inetutils:
+      ignored-interfaces:
+        - VMnet.*
+        - vEthernet.*
+        - docker0 # 忽略常见的虚拟机网卡名称 (正则匹配)
+      preferred-networks:
+        - 10 #指定首选的网络号段 (校园网段10开头)
   profiles:
     active: dev # 激活开发环境配置
