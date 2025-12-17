@@ -12,10 +12,10 @@ return function(conf, ctx)
     -- Nginx 获取 Header 是大小写不敏感的，但通常标准是 Authorization
     local auth_header = core.request.header(ctx, "Authorization")
 
-    -- 安全校验：如果没带 Token，直接 401
+    -- 如果没有 Token，直接 return 结束当前脚本。
+    -- 不要手动 return 401，因为后面的 jwt-auth 插件会发现缺失并返回标准的 401。
     if not auth_header then
-        core.log.warn("Missing Authorization Header")
-        return 401, {message = "Missing Token"}
+        return
     end
 
     -- 处理 Bearer 前缀 (兼容性处理)
@@ -25,25 +25,46 @@ return function(conf, ctx)
         token = string.sub(auth_header, 8)
     end
 
-    -- 解析 JWT (注意：这里不做验签，因为 jwt-auth 插件已经帮我们验过了)
-    -- 我们这里 load_jwt 主要是为了拿 payload 数据
+    if not token or token == "" then
+        return
+    end
+
+    -- load_jwt 不会验证签名，只解析内容
+    -- 即使这里解析了假 Token，稍后执行的 jwt-auth 插件也会拦截请求，所以是安全的
     local jwt_obj = jwt:load_jwt(token)
+
+    -- 防止解析失败 (如传入了非 JWT 格式乱码) 导致脚本崩溃
+    if not jwt_obj or not jwt_obj.payload then
+        -- 解析失败也不报错，直接交给 jwt-auth 去拦截无效 Token
+        return
+    end
 
     -- 提取 Payload 数据
     local payload = jwt_obj.payload
 
     -- 注入 Header 传给下游 Java 服务
-    -- Nginx 的 Header 值必须是字符串！如果 loginId 是数字 (如 1001)，直接传会导致 500 错误，必须用 tostring() 转换
+
+    -- 辅助函数：安全转换为字符串，如果是 nil 则返回 nil
+    local function safe_tostring(val)
+        if val == nil or val == ngx.null then
+            return nil
+        end
+        return tostring(val)
+    end
+
+    -- 注入 User ID
+    local loginId = safe_tostring(payload.loginId)
     if payload.loginId then
-        core.request.set_header(ctx, "X-User-Id", tostring(payload.loginId))
+        core.request.set_header(ctx, "X-User-Id", loginId)
     end
-
-    if payload.identityType then
-        core.request.set_header(ctx, "X-Identity-Type", tostring(payload.identityType))
+    -- 注入 Identity Type
+    local identityType = safe_tostring(payload.identityType)
+    if identityType then
+        core.request.set_header(ctx, "X-Identity-Type", identityType)
     end
-
-    if payload.groupIds then
-        -- groupIds 可能是 nil，tostring(nil) 会变成 "nil" 字符串，通常我们希望它不传或者传空
-        core.request.set_header(ctx, "X-Group-Ids", tostring(payload.groupIds))
+    -- 注入 Group IDs
+    local groupIds = safe_tostring(payload.groupIds)
+    if groupIds then
+        core.request.set_header(ctx, "X-Group-Ids", groupIds)
     end
 end

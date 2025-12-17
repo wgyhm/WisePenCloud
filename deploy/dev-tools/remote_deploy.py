@@ -20,6 +20,11 @@ SERVICES = {
         "entry_script": "setup.sh",
         "desc": "APISIX Gateway Configuration"
     },
+    "gateway-patch": {
+        "local_dir": "gateway-apisix/remote_bundle",
+        "entry_script": "patch.sh",
+        "desc": "APISIX Gateway Patch"
+    },
     # 以后可以轻松添加新服务
 }
 # =================================================
