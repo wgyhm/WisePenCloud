@@ -43,10 +43,6 @@ public class User implements Serializable {
     @TableLogic
     private Integer delFlag;
 
-    /** 审计字段 */
-    private String loginIp;
-    private LocalDateTime loginDate;
-
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createTime;
 
