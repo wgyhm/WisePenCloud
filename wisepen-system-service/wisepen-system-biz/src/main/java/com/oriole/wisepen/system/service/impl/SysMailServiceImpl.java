@@ -1,6 +1,7 @@
 package com.oriole.wisepen.system.service.impl;
 
 import com.oriole.wisepen.common.core.domain.R;
+import com.oriole.wisepen.common.core.exception.ServiceException;
 import com.oriole.wisepen.system.api.domain.dto.MailSendDTO;
 import com.oriole.wisepen.system.excpetion.SysErrorCode;
 import com.oriole.wisepen.system.service.SysMailService;
@@ -33,7 +34,7 @@ public class SysMailServiceImpl implements SysMailService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public R<Void> sendMail(MailSendDTO mailSendDTO) {
+    public void sendMail(MailSendDTO mailSendDTO) {
         try {
 
             MimeMessage message = mailSender.createMimeMessage();
@@ -46,11 +47,10 @@ public class SysMailServiceImpl implements SysMailService {
 
             mailSender.send(message);
             log.info(String.format("Email sent: To=%s, Subject=%s", mailSendDTO.getToEmail(), mailSendDTO.getSubject()));
-            return R.ok();
         } catch (Exception e) {
             String err = String.format("Email sending failed: To=%s, Subject=%s, Err=%s", mailSendDTO.getToEmail(), mailSendDTO.getSubject(), e.getMessage());
             log.error(err, e);
-            return R.fail(SysErrorCode.MAIL_SEND_ERROR, err);
+            throw new ServiceException(SysErrorCode.MAIL_SEND_ERROR);
         }
     }
 }

@@ -9,5 +9,5 @@ import com.oriole.wisepen.system.api.domain.dto.MailSendDTO;
  * @author Oriole
  */
 public interface SysMailService {
-    R<Void> sendMail(MailSendDTO mailSendDTO);
+    void sendMail(MailSendDTO mailSendDTO);
 }

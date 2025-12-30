@@ -26,6 +26,7 @@ public class MailController {
      */
     @PostMapping("/send")
     public R<Void> sendMail(@RequestBody MailSendDTO mailSendDTO) {
-        return sysMailService.sendMail(mailSendDTO);
+        sysMailService.sendMail(mailSendDTO);
+        return R.ok();
     }
 }
