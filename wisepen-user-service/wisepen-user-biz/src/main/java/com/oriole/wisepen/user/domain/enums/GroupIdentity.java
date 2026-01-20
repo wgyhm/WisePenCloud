@@ -15,7 +15,7 @@ public enum GroupIdentity {
 
 	@EnumValue
 	@JsonValue
-	private final int code;
+	private final Integer code;
 
 	private final String desc;
 }

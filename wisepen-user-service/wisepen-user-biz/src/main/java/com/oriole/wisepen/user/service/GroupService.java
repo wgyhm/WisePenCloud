@@ -19,7 +19,7 @@ public interface GroupService {
     List<Long> getGroupIdsByUserId(Long userId);
 
     // 获取用户的不同类型组ID (业务方法) (Type= 1-我管理的，2-我加入的）
-    PageResp<GroupQueryResp> getGroupIdsByUserIdAndType(Long userId, int type, int page, int size);
+    PageResp<GroupQueryResp> getGroupIdsByUserIdAndType(Long userId, Integer type, Integer page, Integer size);
 
     // 获取组的详情 (业务方法)
     Group getGroupById(Long id);

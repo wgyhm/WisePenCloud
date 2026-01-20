@@ -23,7 +23,7 @@ public class GroupMember implements Serializable {
     /** 用户ID */
     private Long userId;
 
-    private int role;
+    private Integer role;
 
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime joinTime;

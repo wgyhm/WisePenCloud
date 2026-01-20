@@ -11,9 +11,9 @@ public class GroupMemberQuotas {
 	@TableId(type = IdType.INPUT) // 关键：id不是自增，必须手动填入 member.id
 	private long id;
 
-	private int quota_used;
+	private Integer quota_used;
 
-	private int quota_limit;
+	private Integer quota_limit;
 
 	@TableField(fill = FieldFill.INSERT_UPDATE)
 	private LocalDateTime updateTime;

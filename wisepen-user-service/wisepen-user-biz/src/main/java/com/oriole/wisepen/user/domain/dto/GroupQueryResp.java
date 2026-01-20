@@ -8,8 +8,8 @@ public class GroupQueryResp {
 	private String name;
 	private Long ownerId;
 	private String description;
-	private int type;
+	private Integer type;
 	private String coverUrl;
 	private String inviteCode;
-	private int memberCount;
+	private Integer memberCount;
 }

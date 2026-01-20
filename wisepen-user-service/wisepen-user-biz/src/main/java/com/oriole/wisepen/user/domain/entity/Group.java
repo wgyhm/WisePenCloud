@@ -26,15 +26,15 @@ public class Group implements Serializable {
     /** 描述 */
     private String description;
 
-    private int type;
+    private Integer type;
 
     private String coverUrl;
 
     private String inviteCode;
 
-    private int delFlag;
+    private Integer delFlag;
 
-    private int memberCount;
+    private Integer memberCount;
 
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createTime;

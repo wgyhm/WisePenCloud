@@ -176,7 +176,7 @@ public class UserServiceImpl implements UserService {
                 .password(BCrypt.hashpw(newPassword))
                 .updateTime(java.time.LocalDateTime.now())
                 .build();
-        int result = userMapper.updateById(user);
+        Integer result = userMapper.updateById(user);
         return result > 0;
     }
 }

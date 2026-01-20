@@ -10,12 +10,17 @@ import com.oriole.wisepen.user.domain.entity.Group;
 import com.oriole.wisepen.user.service.GroupMemberService;
 import com.oriole.wisepen.user.service.GroupService;
 import com.oriole.wisepen.user.service.UserService;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotNull;
+import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/group")
 @RequiredArgsConstructor
+@Validated
 public class GroupController {
 
 	private final GroupService groupService;
@@ -24,9 +29,9 @@ public class GroupController {
 	@SaCheckLogin
 	@PostMapping("/new")
 	public R<?> createGroup(
-			@RequestParam("groupName") String groupName,
-			@RequestParam("groupType") int groupType,
-			@RequestParam("description") String description,
+			@RequestParam("groupName") @NonNull String groupName,
+			@RequestParam("groupType") @NotNull Integer groupType,
+			@RequestParam("description") @NonNull String description,
 			@RequestParam(value="coverUrl",required = false) String coverUrl
 	) {
 		Group group = new Group();
@@ -44,7 +49,7 @@ public class GroupController {
 	@SaCheckLogin
 	@PostMapping("/edit")
 	public R<?> updateGroup(
-			@RequestParam("groupId") Long groupId,
+			@RequestParam("groupId") @NotNull Long groupId,
 			@RequestParam(value="groupName",required = false) String groupName,
 			@RequestParam(value="description",required = false) String description,
 			@RequestParam(value="coverUrl",required = false) String coverUrl
@@ -60,7 +65,7 @@ public class GroupController {
 
 	@SaCheckLogin
 	@PostMapping("/delete")
-	public R<?> deleteGroup(@RequestParam("groupId")  Long groupId) {
+	public R<?> deleteGroup(@RequestParam("groupId") @NonNull Long groupId) {
 		groupService.deleteGroup(groupId);
 		return R.ok();
 	}
@@ -68,9 +73,9 @@ public class GroupController {
 	@SaCheckLogin
 	@GetMapping("/info")
 	public R<PageResp<GroupQueryResp>> getInfo(
-			@RequestParam("relationType") int relationType,
-			@RequestParam("page") int page,
-			@RequestParam("size") int size
+			@RequestParam("relationType") @NonNull Integer relationType,
+			@RequestParam("page") @NonNull @Min(1) Integer page,
+			@RequestParam("size") @NonNull @Min(1) Integer size
 	) {
 		Long userId = SecurityContextHolder.getUserId();
 		return R.ok(groupService.getGroupIdsByUserIdAndType(userId,relationType,page,size));

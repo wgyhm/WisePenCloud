@@ -6,13 +6,13 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.oriole.wisepen.common.core.context.SecurityContextHolder;
 import com.oriole.wisepen.common.core.domain.enums.IdentityType;
-import com.oriole.wisepen.common.core.domain.enums.ResultCode;
 import com.oriole.wisepen.common.core.exception.ServiceException;
 import com.oriole.wisepen.user.component.InviteCodeGenerator;
 import com.oriole.wisepen.user.domain.dto.GroupQueryResp;
 import com.oriole.wisepen.user.domain.dto.PageResp;
 import com.oriole.wisepen.user.domain.entity.Group;
 import com.oriole.wisepen.user.domain.entity.GroupMember;
+import com.oriole.wisepen.user.exception.GroupErrorCode;
 import com.oriole.wisepen.user.mapper.GroupMapper;
 import com.oriole.wisepen.user.mapper.GroupMemberMapper;
 import com.oriole.wisepen.user.mapper.GroupMemberQuotasMapper;
@@ -45,7 +45,7 @@ public class GroupServiceImpl implements GroupService {
         return res!=null&&res.getDelFlag()==0;
     }
     //当前是否是 group 的owner
-    public Boolean validatePermission(Long groupId){
+    public Boolean validatePermission (Long groupId){
         IdentityType type= SecurityContextHolder.getIdentityType();
         if (type==IdentityType.ADMIN) {
             return true;
@@ -67,17 +67,17 @@ public class GroupServiceImpl implements GroupService {
 
         //因为删除是软删除，所以暂时不考虑删除以后也能添加相同的组名
         if (res!=null) {
-			throw new ServiceException(ResultCode.GROUP_IS_EXISTED);
+			throw new ServiceException(GroupErrorCode.GROUP_IS_EXISTED);
 		}
         //校验权限
 
         IdentityType type= SecurityContextHolder.getIdentityType();
         if (group.getType()==2&&type!=IdentityType.TEACHER&&type!=IdentityType.ADMIN) {
-            throw new ServiceException(ResultCode.NO_PERMISSION);
+            throw new ServiceException(GroupErrorCode.NO_PERMISSION);
         }
 
         if (group.getType()==3&&type!=IdentityType.ADMIN) {
-            throw new ServiceException(ResultCode.NO_PERMISSION);
+            throw new ServiceException(GroupErrorCode.NO_PERMISSION);
         }
         // ...
         group.setInviteCode(inviteCodeGenerator.generate8());
@@ -91,12 +91,12 @@ public class GroupServiceImpl implements GroupService {
                 .eq(Group::getId,group.getId()));
         //这个不存在
         if (validateIsExisted(group.getId())==false) {
-            throw new ServiceException(ResultCode.GROUP_NOT_EXIST);
+            throw new ServiceException(GroupErrorCode.GROUP_NOT_EXIST);
         }
 
         //不是 owner 修改的
         if (validatePermission(group.getId())==false) {
-            throw new ServiceException(ResultCode.NO_PERMISSION);
+            throw new ServiceException(GroupErrorCode.NO_PERMISSION);
         }
 
         groupMapper.updateById(group);
@@ -107,11 +107,11 @@ public class GroupServiceImpl implements GroupService {
 
         //这个不存在
         if (validateIsExisted(groupId)==false) {
-            throw new ServiceException(ResultCode.GROUP_NOT_EXIST);
+            throw new ServiceException(GroupErrorCode.GROUP_NOT_EXIST);
         }
         //没有
         if (validatePermission(groupId)==false) {
-            throw new ServiceException(ResultCode.NO_PERMISSION);
+            throw new ServiceException(GroupErrorCode.NO_PERMISSION);
         }
 
         LambdaUpdateWrapper<Group> wrapper = new LambdaUpdateWrapper<Group>()
@@ -127,28 +127,30 @@ public class GroupServiceImpl implements GroupService {
     }
 
     @Override
-    public PageResp<GroupQueryResp> getGroupIdsByUserIdAndType(Long userId, int type, int page, int size) {
-        QueryWrapper<GroupMember> wrapper = new QueryWrapper<GroupMember>()
-                .eq("user_id",userId)
-                .eq("role",type)
-                .eq("del_flag",0)
-                .select("groupId");
+    public PageResp<GroupQueryResp> getGroupIdsByUserIdAndType(Long userId, Integer type, Integer page, Integer size) {
+        LambdaQueryWrapper<GroupMember> wrapper = new LambdaQueryWrapper<GroupMember>()
+                .eq(GroupMember::getUserId,userId)
+                .eq(GroupMember::getRole,type)
+                .select(GroupMember::getGroupId);
 
         List<Long> ids=groupMemberMapper.selectList(wrapper)
                 .stream()
                 .map(GroupMember::getGroupId)
-                .collect(Collectors.toList());;
-
+                .collect(Collectors.toList());
+        //ids为空会炸，返回没有任何小组
+        if (ids.isEmpty()) {
+            throw new  ServiceException(GroupErrorCode.GROUP_NOT_EXIST);
+        }
         List<Group> groups=groupMapper.selectBatchIds(ids);
         List<GroupQueryResp> groupQueryRespList= BeanUtil.copyToList(groups,GroupQueryResp.class);
-        int total= groupQueryRespList.size();
-        int totalPage = (total+size-1)/size;
+        Integer total= groupQueryRespList.size();
+        Integer totalPage = (total+size-1)/size;
         if (page > totalPage || page < 1) {
-            throw new ServiceException(ResultCode.PAGE_NOT_EXIST);
+            throw new ServiceException(GroupErrorCode.PAGE_NOT_EXIST);
         }
 
-        int from=(page-1)*size;
-        int to=Math.min(from+size,total);
+        Integer from=(page-1)*size;
+        Integer to=Math.min(from+size,total);
         return new PageResp<GroupQueryResp>(totalPage,groupQueryRespList.subList(from,to));
     }
 

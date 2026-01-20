@@ -12,5 +12,5 @@ public class GroupWallets {
 	@TableId(type = IdType.INPUT) // 关键：id不是自增，必须手动填入 member.id
 	private Long id;
 
-	private int groupBalance;
+	private Integer groupBalance;
 }

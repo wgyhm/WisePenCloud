@@ -31,7 +31,8 @@ public enum ResultCode implements IErrorCode {
     PAGE_NOT_EXIST(2003,"该页不存在"),
     MEMBER_NOT_IN_GROUP(2004,"该成员不在该组中"),
     MEMBER_IS_OWNER(2005,"组长不能退出小组"),
-    PERMISSION_IS_LOWER(2006,"权限不够");
+    PERMISSION_IS_LOWER(2006,"权限不够"),
+    MEMBER_NOT_EXSIT(2007,"该组没有成员");
     // ..暂无
 
     private final Integer code;
