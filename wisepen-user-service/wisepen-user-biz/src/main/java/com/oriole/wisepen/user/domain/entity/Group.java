@@ -26,6 +26,16 @@ public class Group implements Serializable {
     /** 描述 */
     private String description;
 
+    private int type;
+
+    private String coverUrl;
+
+    private String inviteCode;
+
+    private int delFlag;
+
+    private int memberCount;
+
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createTime;
 
