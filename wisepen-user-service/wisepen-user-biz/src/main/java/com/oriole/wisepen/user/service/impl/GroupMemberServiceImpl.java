@@ -37,6 +37,12 @@ public class GroupMemberServiceImpl implements GroupMemberService {
 	private final UserMapper userMapper;
 	private final UserProfileMapper userProfileMapper;
 
+	public Boolean validateIsExisted(Long groupId){
+		Group res=groupMapper.selectOne(new LambdaQueryWrapper<Group>()
+				.eq(Group::getId,groupId));
+		return res!=null&&res.getDelFlag()==0;
+	}
+
 	private GroupMember findGroupMemberByGroupId(Long userId, Long groupId){
 		LambdaQueryWrapper<GroupMember> queryWrapper = new LambdaQueryWrapper<GroupMember>()
 				.eq(GroupMember::getGroupId, groupId)
@@ -80,11 +86,10 @@ public class GroupMemberServiceImpl implements GroupMemberService {
 
 	@Override
 	public void leaveGroup(Long userId, Long groupId) {
-		Group group = groupMapper.selectById(groupId);
-		if (group.getDelFlag()==1) {
+		if (!validateIsExisted(groupId)) {
 			throw new ServiceException(GroupErrorCode.GROUP_NOT_EXIST);
 		}
-
+		Group group = groupMapper.selectById(groupId);
 		GroupMember groupMember=findGroupMemberByGroupId(userId,groupId);
 
 		if (groupMember==null) {
@@ -100,7 +105,14 @@ public class GroupMemberServiceImpl implements GroupMemberService {
 
 	@Override
 	public void kickGroupMember(Long userId, Long groupId, Long targetUserId) {
+		if (!validateIsExisted(groupId)) {
+			throw new ServiceException(GroupErrorCode.GROUP_NOT_EXIST);
+		}
+
 		GroupMember groupMember=findGroupMemberByGroupId(userId,groupId);
+		if (groupMember==null) {
+			throw new ServiceException(GroupErrorCode.PERMISSION_IS_LOWER);
+		}
 		GroupMember targetGroupMember=findGroupMemberByGroupId(targetUserId,groupId);
 		if (targetGroupMember==null) {
 			throw new ServiceException(GroupErrorCode.MEMBER_NOT_IN_GROUP);
@@ -116,13 +128,16 @@ public class GroupMemberServiceImpl implements GroupMemberService {
 
 	@Override
 	public PageResp<MemberListQueryResp> getMemberList(Long groupId, Integer page, Integer size) {
+		if (!validateIsExisted(groupId)) {
+			throw new ServiceException(GroupErrorCode.GROUP_NOT_EXIST);
+		}
+
 		Group group=groupMapper.selectById(groupId);
 
 		Page<GroupMember> mpPage = new Page<>(page, size);
 		LambdaQueryWrapper<GroupMember> wrapper = new LambdaQueryWrapper<GroupMember>()
 				.eq(GroupMember::getGroupId,groupId)
 				.select(GroupMember::getUserId,GroupMember::getGroupId,GroupMember::getRole,GroupMember::getJoinTime);
-//				.orderByDesc(GroupMember::getRole, GroupMember::getJoinTime);
 
 		IPage<GroupMember> memberRecords = groupMemberMapper.selectPage(mpPage, wrapper);
 		List<Long> ids = memberRecords.getRecords().stream()
@@ -173,45 +188,24 @@ public class GroupMemberServiceImpl implements GroupMemberService {
 		return new PageResp<>((int) memberRecords.getPages(), records);
 	}
 
-//	@Override
-//	public PageResp<MemberListInNormalGroupQueryResp> getMemberListInNormalGroup(Long groupId, Integer page, Integer size) {
-//		LambdaQueryWrapper<GroupMember> wrapper = new LambdaQueryWrapper<GroupMember>()
-//				.eq(GroupMember::getGroupId,groupId)
-//				.select(GroupMember::getUserId);
-//
-//		List<Long> ids=groupMemberMapper.selectList(wrapper)
-//				.stream()
-//				.map(GroupMember::getGroupId)
-//				.collect(Collectors.toList());
-//		//ids为空会炸，返回没有任何成员
-//		if (ids.isEmpty()) {
-//			throw new  ServiceException(GroupErrorCode.MEMBER_NOT_EXSIT);
-//		}
-//		List<User> users=userMapper.selectBatchIds(ids);
-//		List<MemberListInNormalGroupQueryResp> MemberListInNormalGroupQueryRespList= BeanUtil.copyToList(users,MemberListInNormalGroupQueryResp.class);
-//		int total= MemberListInNormalGroupQueryRespList.size();
-//		Integer totalPage = (total+size-1)/size;
-//		if (page > totalPage || page < 1) {
-//			throw new ServiceException(GroupErrorCode.PAGE_NOT_EXIST);
-//		}
-//
-//		int from=(page-1)*size;
-//		int to=Math.min(from+size,total);
-//		return new PageResp<MemberListInNormalGroupQueryResp>(totalPage,MemberListInNormalGroupQueryRespList.subList(from,to));
-//	}
-
 	@Override
 	public void updateGroupMemberRole(Long groupId, Long targetUserId, Integer role) {
 		Long userId=SecurityContextHolder.getUserId();
+		if (targetUserId.equals(userId)){
+			throw new ServiceException(GroupErrorCode.DO_NOT_UPDATE_YOURSELF);
+		}
+		GroupMember targetGroupMember = findGroupMemberByGroupId(targetUserId, groupId);
+		if (targetGroupMember==null) {
+			throw new ServiceException(GroupErrorCode.MEMBER_NOT_IN_GROUP);
+		}
+
 		GroupMember groupMember=findGroupMemberByGroupId(userId,groupId);
-		if (!groupMember.getRole().equals(GroupIdentity.OWNER.getCode())) {
+		if (groupMember==null||!groupMember.getRole().equals(GroupIdentity.OWNER.getCode())) {
 			throw new ServiceException(GroupErrorCode.PERMISSION_IS_LOWER);
 		}
 		LambdaUpdateWrapper<GroupMember> wrapper = new LambdaUpdateWrapper<GroupMember>()
-				.eq(GroupMember::getId,groupMember.getId())
+				.eq(GroupMember::getId,targetGroupMember.getId())
 				.set(GroupMember::getRole,role);
 		groupMemberMapper.update(wrapper);
 	}
-
-
 }
