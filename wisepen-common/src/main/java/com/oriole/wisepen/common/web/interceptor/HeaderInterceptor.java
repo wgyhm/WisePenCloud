@@ -20,6 +20,7 @@ public class HeaderInterceptor implements HandlerInterceptor {
         String userIdStr = request.getHeader(SecurityConstants.HEADER_USER_ID);
         String identityTypeStr = request.getHeader(SecurityConstants.HEADER_IDENTITY_TYPE);
         String groupIdsStr = request.getHeader(SecurityConstants.HEADER_GROUP_IDS);
+//        System.out.println(userIdStr+identityTypeStr+groupIdsStr);
 
         // 如果 Header 里有 UserID，说明网关已认证通过
         if (StrUtil.isNotBlank(userIdStr)) {

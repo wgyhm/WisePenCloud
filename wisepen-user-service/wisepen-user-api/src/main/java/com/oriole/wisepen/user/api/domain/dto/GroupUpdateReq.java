@@ -1,4 +1,4 @@
-package com.oriole.wisepen.user.domain.dto;
+package com.oriole.wisepen.user.api.domain.dto;
 
 import lombok.Data;
 

@@ -1,27 +1,31 @@
 package com.oriole.wisepen.user.service.impl;
 
-import cn.hutool.core.bean.BeanUtil;
-import cn.hutool.db.Page;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.oriole.wisepen.common.core.context.SecurityContextHolder;
 import com.oriole.wisepen.common.core.exception.ServiceException;
-import com.oriole.wisepen.user.domain.dto.GroupQueryResp;
-import com.oriole.wisepen.user.domain.dto.MemberListInNormalGroupQueryResp;
-import com.oriole.wisepen.user.domain.dto.MemberListQueryResp;
-import com.oriole.wisepen.user.domain.dto.PageResp;
+import com.oriole.wisepen.user.api.domain.dto.MemberListQueryResp;
+import com.oriole.wisepen.user.api.domain.dto.PageResp;
 import com.oriole.wisepen.user.domain.entity.Group;
 import com.oriole.wisepen.user.domain.entity.GroupMember;
 import com.oriole.wisepen.user.domain.entity.User;
+import com.oriole.wisepen.user.domain.entity.UserProfile;
 import com.oriole.wisepen.user.domain.enums.GroupIdentity;
 import com.oriole.wisepen.user.exception.GroupErrorCode;
 import com.oriole.wisepen.user.mapper.GroupMapper;
 import com.oriole.wisepen.user.mapper.GroupMemberMapper;
 import com.oriole.wisepen.user.mapper.UserMapper;
+import com.oriole.wisepen.user.mapper.UserProfileMapper;
 import com.oriole.wisepen.user.service.GroupMemberService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -31,6 +35,7 @@ public class GroupMemberServiceImpl implements GroupMemberService {
 	private final GroupMapper groupMapper;
 	private final GroupMemberMapper groupMemberMapper;
 	private final UserMapper userMapper;
+	private final UserProfileMapper userProfileMapper;
 
 	private GroupMember findGroupMemberByGroupId(Long userId, Long groupId){
 		LambdaQueryWrapper<GroupMember> queryWrapper = new LambdaQueryWrapper<GroupMember>()
@@ -49,6 +54,10 @@ public class GroupMemberServiceImpl implements GroupMemberService {
 			throw new ServiceException(GroupErrorCode.GROUP_NOT_EXIST);
 		}
 
+		LambdaQueryWrapper<GroupMember> wrapper = new LambdaQueryWrapper<GroupMember>().eq(GroupMember::getGroupId, group.getId()).eq(GroupMember::getUserId, userId);
+		if (groupMemberMapper.selectCount(wrapper)>0){
+			throw new ServiceException(GroupErrorCode.MEMBER_IS_EXISTED);
+		}
 		GroupMember groupMember=new GroupMember();
 		groupMember.setGroupId(group.getId());
 		groupMember.setUserId(userId);
@@ -71,15 +80,15 @@ public class GroupMemberServiceImpl implements GroupMemberService {
 
 	@Override
 	public void leaveGroup(Long userId, Long groupId) {
+		Group group = groupMapper.selectById(groupId);
+		if (group.getDelFlag()==1) {
+			throw new ServiceException(GroupErrorCode.GROUP_NOT_EXIST);
+		}
+
 		GroupMember groupMember=findGroupMemberByGroupId(userId,groupId);
 
 		if (groupMember==null) {
 			throw new ServiceException(GroupErrorCode.MEMBER_NOT_IN_GROUP);
-		}
-
-		Group group = groupMapper.selectById(groupMember.getGroupId());
-		if (group.getDelFlag()==1) {
-			throw new ServiceException(GroupErrorCode.GROUP_NOT_EXIST);
 		}
 
 		if (group.getOwnerId().equals(userId)) {
@@ -107,61 +116,101 @@ public class GroupMemberServiceImpl implements GroupMemberService {
 
 	@Override
 	public PageResp<MemberListQueryResp> getMemberList(Long groupId, Integer page, Integer size) {
+		Group group=groupMapper.selectById(groupId);
+
+		Page<GroupMember> mpPage = new Page<>(page, size);
 		LambdaQueryWrapper<GroupMember> wrapper = new LambdaQueryWrapper<GroupMember>()
 				.eq(GroupMember::getGroupId,groupId)
-				.select(GroupMember::getUserId);
+				.select(GroupMember::getUserId,GroupMember::getGroupId,GroupMember::getRole,GroupMember::getJoinTime);
+//				.orderByDesc(GroupMember::getRole, GroupMember::getJoinTime);
 
-		List<Long> ids=groupMemberMapper.selectList(wrapper)
-				.stream()
-				.map(GroupMember::getGroupId)
-				.collect(Collectors.toList());
-		//ids为空会炸，返回没有任何成员
+		IPage<GroupMember> memberRecords = groupMemberMapper.selectPage(mpPage, wrapper);
+		List<Long> ids = memberRecords.getRecords().stream()
+				.map(GroupMember::getUserId)
+				.distinct()
+				.toList();
+
 		if (ids.isEmpty()) {
-			throw new  ServiceException(GroupErrorCode.MEMBER_NOT_EXSIT);
+			return new PageResp<>((int) memberRecords.getPages(), Collections.emptyList());
 		}
 		List<User> users=userMapper.selectBatchIds(ids);
-		List<MemberListQueryResp> memberListQueryRespList= BeanUtil.copyToList(users,MemberListQueryResp.class);
-		Integer total= memberListQueryRespList.size();
-		Integer totalPage = (total+size-1)/size;
-		if (page > totalPage || page < 1) {
-			throw new ServiceException(GroupErrorCode.PAGE_NOT_EXIST);
-		}
+		List<UserProfile> userProfiles=userProfileMapper.selectBatchIds(ids);
 
-		Integer from=(page-1)*size;
-		Integer to=Math.min(from+size,total);
-		return new PageResp<MemberListQueryResp>(totalPage,memberListQueryRespList.subList(from,to));
+		Map<Long, User> userMap = users.stream()
+				.collect(Collectors.toMap(User::getId, u -> u, (a, b) -> a));
+
+		Map<Long, UserProfile> userProfileMap = userProfiles.stream()
+				.collect(Collectors.toMap(UserProfile::getUserId, u -> u, (a, b) -> a));
+
+		List<MemberListQueryResp> records = memberRecords.getRecords().stream().map(gm -> {
+			MemberListQueryResp resp = new MemberListQueryResp();
+			Long uid = gm.getUserId();
+
+			resp.setUserId(uid);
+			resp.setRole(gm.getRole());
+			resp.setJoinTime(gm.getJoinTime());
+
+			User u = userMap.get(uid);
+			if (u != null) {
+				resp.setNickname(u.getNickname());
+			}
+			//普通组不显示 real_name
+			if (group.getType()!=1) {
+				UserProfile uu = userProfileMap.get(uid);
+				if (uu != null) {
+					resp.setRealname(uu.getRealName());
+				}
+			}
+			return resp;
+		}).toList();
+
+//		records.sort(
+//				Comparator.comparing(MemberListQueryResp::getRole, Comparator.nullsLast(Comparator.naturalOrder()))
+//						.thenComparing(MemberListQueryResp::getJoinTime, Comparator.nullsLast(Comparator.naturalOrder()))
+//		);
+		//加一个按照role和joinTime排序的操作。
+//		List<MemberListQueryResp> records=BeanUtil.copyToList(users,MemberListQueryResp.class);
+		return new PageResp<>((int) memberRecords.getPages(), records);
 	}
 
-	@Override
-	public PageResp<MemberListInNormalGroupQueryResp> getMemberListInNormalGroup(Long groupId, Integer page, Integer size) {
-		LambdaQueryWrapper<GroupMember> wrapper = new LambdaQueryWrapper<GroupMember>()
-				.eq(GroupMember::getGroupId,groupId)
-				.select(GroupMember::getUserId);
-
-		List<Long> ids=groupMemberMapper.selectList(wrapper)
-				.stream()
-				.map(GroupMember::getGroupId)
-				.collect(Collectors.toList());
-		//ids为空会炸，返回没有任何成员
-		if (ids.isEmpty()) {
-			throw new  ServiceException(GroupErrorCode.MEMBER_NOT_EXSIT);
-		}
-		List<User> users=userMapper.selectBatchIds(ids);
-		List<MemberListInNormalGroupQueryResp> MemberListInNormalGroupQueryRespList= BeanUtil.copyToList(users,MemberListInNormalGroupQueryResp.class);
-		Integer total= MemberListInNormalGroupQueryRespList.size();
-		Integer totalPage = (total+size-1)/size;
-		if (page > totalPage || page < 1) {
-			throw new ServiceException(GroupErrorCode.PAGE_NOT_EXIST);
-		}
-
-		Integer from=(page-1)*size;
-		Integer to=Math.min(from+size,total);
-		return new PageResp<MemberListInNormalGroupQueryResp>(totalPage,MemberListInNormalGroupQueryRespList.subList(from,to));
-	}
+//	@Override
+//	public PageResp<MemberListInNormalGroupQueryResp> getMemberListInNormalGroup(Long groupId, Integer page, Integer size) {
+//		LambdaQueryWrapper<GroupMember> wrapper = new LambdaQueryWrapper<GroupMember>()
+//				.eq(GroupMember::getGroupId,groupId)
+//				.select(GroupMember::getUserId);
+//
+//		List<Long> ids=groupMemberMapper.selectList(wrapper)
+//				.stream()
+//				.map(GroupMember::getGroupId)
+//				.collect(Collectors.toList());
+//		//ids为空会炸，返回没有任何成员
+//		if (ids.isEmpty()) {
+//			throw new  ServiceException(GroupErrorCode.MEMBER_NOT_EXSIT);
+//		}
+//		List<User> users=userMapper.selectBatchIds(ids);
+//		List<MemberListInNormalGroupQueryResp> MemberListInNormalGroupQueryRespList= BeanUtil.copyToList(users,MemberListInNormalGroupQueryResp.class);
+//		int total= MemberListInNormalGroupQueryRespList.size();
+//		Integer totalPage = (total+size-1)/size;
+//		if (page > totalPage || page < 1) {
+//			throw new ServiceException(GroupErrorCode.PAGE_NOT_EXIST);
+//		}
+//
+//		int from=(page-1)*size;
+//		int to=Math.min(from+size,total);
+//		return new PageResp<MemberListInNormalGroupQueryResp>(totalPage,MemberListInNormalGroupQueryRespList.subList(from,to));
+//	}
 
 	@Override
 	public void updateGroupMemberRole(Long groupId, Long targetUserId, Integer role) {
-
+		Long userId=SecurityContextHolder.getUserId();
+		GroupMember groupMember=findGroupMemberByGroupId(userId,groupId);
+		if (!groupMember.getRole().equals(GroupIdentity.OWNER.getCode())) {
+			throw new ServiceException(GroupErrorCode.PERMISSION_IS_LOWER);
+		}
+		LambdaUpdateWrapper<GroupMember> wrapper = new LambdaUpdateWrapper<GroupMember>()
+				.eq(GroupMember::getId,groupMember.getId())
+				.set(GroupMember::getRole,role);
+		groupMemberMapper.update(wrapper);
 	}
 
 

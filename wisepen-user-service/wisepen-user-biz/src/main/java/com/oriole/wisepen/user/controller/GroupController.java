@@ -3,13 +3,11 @@ package com.oriole.wisepen.user.controller;
 import cn.dev33.satoken.annotation.SaCheckLogin;
 import com.oriole.wisepen.common.core.context.SecurityContextHolder;
 import com.oriole.wisepen.common.core.domain.R;
-import com.oriole.wisepen.user.api.domain.dto.UserInfoDTO;
-import com.oriole.wisepen.user.domain.dto.GroupQueryResp;
-import com.oriole.wisepen.user.domain.dto.PageResp;
+import com.oriole.wisepen.user.api.domain.dto.GroupQueryResp;
+import com.oriole.wisepen.user.api.domain.dto.PageResp;
 import com.oriole.wisepen.user.domain.entity.Group;
 import com.oriole.wisepen.user.service.GroupMemberService;
 import com.oriole.wisepen.user.service.GroupService;
-import com.oriole.wisepen.user.service.UserService;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import lombok.NonNull;
@@ -78,7 +76,7 @@ public class GroupController {
 			@RequestParam("size") @NonNull @Min(1) Integer size
 	) {
 		Long userId = SecurityContextHolder.getUserId();
-		return R.ok(groupService.getGroupIdsByUserIdAndType(userId,relationType,page,size));
+		return R.ok(groupService.getGroupIds(userId,relationType,page,size));
 	}
 }
 

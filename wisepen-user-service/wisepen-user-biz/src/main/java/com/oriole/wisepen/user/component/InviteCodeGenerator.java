@@ -11,7 +11,7 @@ public class InviteCodeGenerator {
 
 	public String generate8() {
 		StringBuilder sb = new StringBuilder(8);
-		for (Integer i = 0; i < 8; i++) {
+		for (int i = 0; i < 8; i++) {
 			sb.append(CHARS.charAt(RANDOM.nextInt(CHARS.length())));
 		}
 		return sb.toString();

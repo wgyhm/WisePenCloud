@@ -1,9 +1,7 @@
 package com.oriole.wisepen.user.service;
 
-import com.oriole.wisepen.user.domain.dto.MemberListInNormalGroupQueryResp;
-import com.oriole.wisepen.user.domain.dto.MemberListQueryResp;
-import com.oriole.wisepen.user.domain.dto.PageResp;
-import com.oriole.wisepen.user.domain.enums.GroupIdentity;
+import com.oriole.wisepen.user.api.domain.dto.MemberListQueryResp;
+import com.oriole.wisepen.user.api.domain.dto.PageResp;
 
 public interface GroupMemberService {
 
@@ -13,7 +11,6 @@ public interface GroupMemberService {
 
 	PageResp<MemberListQueryResp> getMemberList(Long groupId, Integer page, Integer size);
 
-	PageResp<MemberListInNormalGroupQueryResp> getMemberListInNormalGroup(Long groupId, Integer page, Integer size);
 	void updateGroupMemberRole(Long groupId, Long targetUserId, Integer role);
 
 	void becomeGroupOwner(Long userId, Long groupId);

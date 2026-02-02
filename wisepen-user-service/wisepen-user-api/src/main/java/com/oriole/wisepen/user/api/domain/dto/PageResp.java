@@ -1,4 +1,4 @@
-package com.oriole.wisepen.user.domain.dto;
+package com.oriole.wisepen.user.api.domain.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -10,6 +10,6 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class PageResp<T> {
-	private long total;
+	private long totalPage;
 	private List<T> records;
 }

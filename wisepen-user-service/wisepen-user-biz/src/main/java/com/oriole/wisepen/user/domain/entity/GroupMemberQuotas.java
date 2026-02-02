@@ -15,6 +15,5 @@ public class GroupMemberQuotas {
 
 	private Integer quota_limit;
 
-	@TableField(fill = FieldFill.INSERT_UPDATE)
 	private LocalDateTime updateTime;
 }

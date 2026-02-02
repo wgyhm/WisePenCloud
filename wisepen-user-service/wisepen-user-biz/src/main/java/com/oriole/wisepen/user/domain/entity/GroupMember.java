@@ -25,6 +25,5 @@ public class GroupMember implements Serializable {
 
     private Integer role;
 
-    @TableField(fill = FieldFill.INSERT)
     private LocalDateTime joinTime;
 }
