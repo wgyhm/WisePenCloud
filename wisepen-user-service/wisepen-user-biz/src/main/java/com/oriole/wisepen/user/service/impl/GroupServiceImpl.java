@@ -129,8 +129,10 @@ public class GroupServiceImpl implements GroupService {
         LambdaUpdateWrapper<Group> wrapper = new LambdaUpdateWrapper<Group>()
                 .eq(Group::getId, groupId)
                 .set(Group::getDelFlag, 1);
-
         groupMapper.update(wrapper);
+
+        LambdaUpdateWrapper<GroupMember> wrapper1 = new LambdaUpdateWrapper<GroupMember>().eq(GroupMember::getGroupId, groupId);
+        groupMemberMapper.delete(wrapper1);
     }
 
     @Override

@@ -109,9 +109,13 @@ public class GroupMemberServiceImpl implements GroupMemberService {
 			throw new ServiceException(GroupErrorCode.GROUP_NOT_EXIST);
 		}
 
+		if (targetUserId.equals(userId)){
+			throw new ServiceException(GroupErrorCode.DO_NOT_UPDATE_YOURSELF);
+		}
+
 		GroupMember groupMember=findGroupMemberByGroupId(userId,groupId);
 		if (groupMember==null) {
-			throw new ServiceException(GroupErrorCode.PERMISSION_IS_LOWER);
+			throw new ServiceException(GroupErrorCode.MEMBER_NOT_IN_GROUP);
 		}
 		GroupMember targetGroupMember=findGroupMemberByGroupId(targetUserId,groupId);
 		if (targetGroupMember==null) {

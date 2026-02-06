@@ -5,6 +5,11 @@ import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
+import java.time.LocalDateTime;
+
+/**
+ * @author Administrator
+ */
 @Data
 @TableName("sys_group_wallets")
 public class GroupWallets {
@@ -13,4 +18,6 @@ public class GroupWallets {
 	private Long id;
 
 	private Integer groupBalance;
+
+	private LocalDateTime joinTime;
 }
