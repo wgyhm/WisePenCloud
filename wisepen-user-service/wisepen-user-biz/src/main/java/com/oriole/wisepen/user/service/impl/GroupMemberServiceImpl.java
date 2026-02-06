@@ -131,6 +131,13 @@ public class GroupMemberServiceImpl implements GroupMemberService {
 	}
 
 	@Override
+	public void kickGroupMembers(Long operatorUserId, Long groupId, List<Long> targetUserIds) {
+		for (Long targetUserId : targetUserIds) {
+			kickGroupMember(operatorUserId, groupId, targetUserId); // 复用你原来的单个踢人逻辑
+		}
+	}
+
+	@Override
 	public PageResp<MemberListQueryResp> getMemberList(Long groupId, Integer page, Integer size) {
 		if (!validateIsExisted(groupId)) {
 			throw new ServiceException(GroupErrorCode.GROUP_NOT_EXIST);

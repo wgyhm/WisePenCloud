@@ -3,9 +3,9 @@ package com.oriole.wisepen.user.controller;
 import cn.dev33.satoken.annotation.SaCheckLogin;
 import com.oriole.wisepen.common.core.context.SecurityContextHolder;
 import com.oriole.wisepen.common.core.domain.R;
-import com.oriole.wisepen.user.api.domain.dto.MemberListQueryResp;
-import com.oriole.wisepen.user.api.domain.dto.PageResp;
+import com.oriole.wisepen.user.api.domain.dto.*;
 import com.oriole.wisepen.user.service.GroupMemberService;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import lombok.NonNull;
@@ -23,41 +23,35 @@ public class GroupMemberController {
 
 	@SaCheckLogin
 	@PostMapping("/join")
-	public R<Void> joinGroup(@RequestParam("inviteCode") @NotNull String inviteCode){
-		Long userId= SecurityContextHolder.getUserId();
-		groupMemberService.joinGroup(userId,inviteCode);
+	public R<Void> joinGroup(@RequestBody @Valid JoinGroupReq req) {
+		Long userId = SecurityContextHolder.getUserId();
+		groupMemberService.joinGroup(userId, req.getInviteCode());
 		return R.ok();
 	}
 
 	@SaCheckLogin
 	@PostMapping("/quit")
-	public R<Void> quitGroup(@RequestParam("groupId") @NotNull Long groupId){
-		Long userId= SecurityContextHolder.getUserId();
-		groupMemberService.leaveGroup(userId,groupId);
+	public R<Void> quitGroup(@RequestBody @Valid QuitGroupReq req) {
+		Long userId = SecurityContextHolder.getUserId();
+		groupMemberService.leaveGroup(userId, req.getGroupId());
 		return R.ok();
 	}
 
 	@SaCheckLogin
 	@PostMapping("/kick")
-	public R<Void> kickGroup(
-			@RequestParam("groupId") @NotNull Long groupId,
-			@RequestParam("targetUserId") @NotNull Long targetUserId
-	){
-		Long userId= SecurityContextHolder.getUserId();
-		groupMemberService.kickGroupMember(userId,groupId,targetUserId);
+	public R<Void> kickGroup(@RequestBody @Valid KickGroupReq req) {
+		Long userId = SecurityContextHolder.getUserId();
+		groupMemberService.kickGroupMembers(userId, req.getGroupId(), req.getTargetUserIds());
 		return R.ok();
 	}
 
 	@SaCheckLogin
 	@PostMapping("/update-role")
-	public R<Void> updateRole(
-			@RequestParam("groupId") @NotNull Long groupId,
-			@RequestParam("targetUserId") @NotNull Long targetUserId,
-			@RequestParam("role") @NotNull int role
-	){
-		groupMemberService.updateGroupMemberRole(groupId,targetUserId,role);
+	public R<Void> updateRole(@RequestBody @Valid UpdateRoleReq req) {
+		groupMemberService.updateGroupMemberRole(req.getGroupId(), req.getTargetUserId(), req.getRole());
 		return R.ok();
 	}
+
 
 	@SaCheckLogin
 	@GetMapping("/info")

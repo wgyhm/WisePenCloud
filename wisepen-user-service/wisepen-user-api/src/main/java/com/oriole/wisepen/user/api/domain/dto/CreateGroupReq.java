@@ -1,0 +1,21 @@
+package com.oriole.wisepen.user.api.domain.dto;
+
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import lombok.Data;
+
+@Data
+public class CreateGroupReq {
+
+	@NotBlank(message = "groupName 不能为空")
+	private String groupName;
+
+	@NotNull(message = "groupType 不能为空")
+	private Integer groupType;
+
+	@NotBlank(message = "description 不能为空")
+	private String description;
+
+	// 可选
+	private String coverUrl;
+}
