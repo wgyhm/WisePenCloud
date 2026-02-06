@@ -18,7 +18,8 @@ public enum GroupErrorCode implements IErrorCode {            // 对应 NotLogin
 	PERMISSION_IS_LOWER(2006,"权限不够"),
 	MEMBER_NOT_EXSIT(2007,"该组没有成员"),
 	MEMBER_IS_EXISTED(2008,"该成员已存在于该组"),
-	DO_NOT_UPDATE_YOURSELF(2009,"禁止操作自己");
+	DO_NOT_UPDATE_YOURSELF(2009,"禁止操作自己"),
+	NORMAL_GROUP(2010,"普通组没有配额");
 
 	// ..暂无
 

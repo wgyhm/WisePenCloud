@@ -13,6 +13,7 @@ import com.oriole.wisepen.user.api.domain.dto.GroupQueryResp;
 import com.oriole.wisepen.user.api.domain.dto.PageResp;
 import com.oriole.wisepen.user.domain.entity.Group;
 import com.oriole.wisepen.user.domain.entity.GroupMember;
+import com.oriole.wisepen.user.domain.entity.GroupWallets;
 import com.oriole.wisepen.user.exception.GroupErrorCode;
 import com.oriole.wisepen.user.mapper.GroupMapper;
 import com.oriole.wisepen.user.mapper.GroupMemberMapper;
@@ -42,6 +43,7 @@ public class GroupServiceImpl implements GroupService {
     private final GroupWalletsMapper groupWalletsMapper;
     private final GroupMemberQuotasMapper groupMemberQuotasMapper;
     private final InviteCodeGenerator inviteCodeGenerator;
+
     //组是否存在（被删除也算不存在）
     public Boolean validateIsExisted(Long groupId){
         Group res=groupMapper.selectOne(new LambdaQueryWrapper<Group>()
@@ -95,6 +97,14 @@ public class GroupServiceImpl implements GroupService {
         group.setInviteCode(inviteCodeGenerator.generate8());
         // 调用 MP 的 Mapper 方法
         groupMapper.insert(group);
+
+        if (group.getType()==2||group.getType()==3) {
+            GroupWallets groupWallets = new GroupWallets();
+            groupWallets.setGroupId(group.getId());
+            groupWallets.setQuotaUsed(0);
+            groupWallets.setQuotaLimit(0);
+            groupWalletsMapper.insert(groupWallets);
+        }
     }
 
     @Override
@@ -140,33 +150,6 @@ public class GroupServiceImpl implements GroupService {
         return groupMemberMapper.selectGroupIdsByUserId(userId);
     }
 
-
-//    public PageResp<GroupQueryResp> getGroupIdsByUserIdAndType(Long userId, Integer type, Integer page, Integer size) {
-//        LambdaQueryWrapper<GroupMember> wrapper = new LambdaQueryWrapper<GroupMember>()
-//                .eq(GroupMember::getUserId,userId)
-//                .eq(GroupMember::getRole,type)
-//                .select(GroupMember::getGroupId);
-//
-//        List<Long> ids=groupMemberMapper.selectList(wrapper)
-//                .stream()
-//                .map(GroupMember::getGroupId)
-//                .collect(Collectors.toList());
-//        //ids为空会炸，返回没有任何小组
-//        if (ids.isEmpty()) {
-//            throw new  ServiceException(GroupErrorCode.GROUP_NOT_EXIST);
-//        }
-//        List<Group> groups=groupMapper.selectBatchIds(ids);
-//        List<GroupQueryResp> groupQueryRespList= BeanUtil.copyToList(groups,GroupQueryResp.class);
-//        int total= groupQueryRespList.size();
-//        Integer totalPage = (total+size-1)/size;
-//        if (page > totalPage || page < 1) {
-//            throw new ServiceException(GroupErrorCode.PAGE_NOT_EXIST);
-//        }
-//
-//        int from=(page-1)*size;
-//        int to=Math.min(from+size,total);
-//        return new PageResp<GroupQueryResp>(totalPage,groupQueryRespList.subList(from,to));
-//    }
     @Override
     public PageResp<GroupQueryResp> getGroupIds(Long userId, Integer type, Integer page, Integer size) {
 

@@ -9,16 +9,10 @@ import com.oriole.wisepen.common.core.context.SecurityContextHolder;
 import com.oriole.wisepen.common.core.exception.ServiceException;
 import com.oriole.wisepen.user.api.domain.dto.MemberListQueryResp;
 import com.oriole.wisepen.user.api.domain.dto.PageResp;
-import com.oriole.wisepen.user.domain.entity.Group;
-import com.oriole.wisepen.user.domain.entity.GroupMember;
-import com.oriole.wisepen.user.domain.entity.User;
-import com.oriole.wisepen.user.domain.entity.UserProfile;
+import com.oriole.wisepen.user.domain.entity.*;
 import com.oriole.wisepen.user.domain.enums.GroupIdentity;
 import com.oriole.wisepen.user.exception.GroupErrorCode;
-import com.oriole.wisepen.user.mapper.GroupMapper;
-import com.oriole.wisepen.user.mapper.GroupMemberMapper;
-import com.oriole.wisepen.user.mapper.UserMapper;
-import com.oriole.wisepen.user.mapper.UserProfileMapper;
+import com.oriole.wisepen.user.mapper.*;
 import com.oriole.wisepen.user.service.GroupMemberService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -36,6 +30,7 @@ public class GroupMemberServiceImpl implements GroupMemberService {
 	private final GroupMemberMapper groupMemberMapper;
 	private final UserMapper userMapper;
 	private final UserProfileMapper userProfileMapper;
+	private final GroupMemberQuotasMapper groupMemberQuotasMapper;
 
 	public Boolean validateIsExisted(Long groupId){
 		Group res=groupMapper.selectOne(new LambdaQueryWrapper<Group>()
@@ -48,6 +43,17 @@ public class GroupMemberServiceImpl implements GroupMemberService {
 				.eq(GroupMember::getGroupId, groupId)
 				.eq(GroupMember::getUserId, userId);
 		return groupMemberMapper.selectOne(queryWrapper);
+	}
+
+	private void insertGroupMember(GroupMember groupMember, Integer type){
+		groupMemberMapper.insert(groupMember);
+
+		if (type==2||type==3) {
+			GroupMemberQuotas groupMemberQuotas = new GroupMemberQuotas();
+			groupMemberQuotas.setId(groupMember.getId());
+			groupMemberQuotas.setQuotaUsed(0);
+			groupMemberQuotas.setQuotaLimit(0);
+		}
 	}
 
 	@Override
@@ -70,18 +76,20 @@ public class GroupMemberServiceImpl implements GroupMemberService {
 		//初始设为 member
 		groupMember.setRole(GroupIdentity.MEMBER.getCode());
 
-		groupMemberMapper.insert(groupMember);
+		insertGroupMember(groupMember,group.getType());
 	}
 
 	@Override
 	public void becomeGroupOwner(Long userId, Long groupId) {
+		Group group=groupMapper.selectById(groupId);
+
 		GroupMember groupMember=new GroupMember();
 		groupMember.setGroupId(groupId);
 		groupMember.setUserId(userId);
 		//新建时默认为 OWNER
 		groupMember.setRole(GroupIdentity.OWNER.getCode());
 
-		groupMemberMapper.insert(groupMember);
+		insertGroupMember(groupMember,group.getType());
 	}
 
 	@Override

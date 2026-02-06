@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
+import java.io.Serial;
 import java.time.LocalDateTime;
 
 /**
@@ -14,10 +15,15 @@ import java.time.LocalDateTime;
 @TableName("sys_group_wallets")
 public class GroupWallets {
 
-	@TableId(type = IdType.INPUT) // 关键：id不是自增，必须手动填入 member.id
-	private Long id;
+	@Serial
+	private static final long serialVersionUID = 1L;
 
-	private Integer groupBalance;
+	@TableId(type = IdType.INPUT)
+	private Long groupId;
 
-	private LocalDateTime joinTime;
+	private Integer quotaUsed;
+
+	private Integer quotaLimit;
+
+	private LocalDateTime updateTime;
 }

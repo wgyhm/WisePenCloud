@@ -16,7 +16,9 @@ import com.oriole.wisepen.user.api.domain.dto.UserInfoDTO;
 import com.oriole.wisepen.user.api.enums.Status;
 import com.oriole.wisepen.user.domain.entity.User;
 import com.oriole.wisepen.user.domain.entity.UserProfile;
+import com.oriole.wisepen.user.domain.entity.UserWallets;
 import com.oriole.wisepen.user.exception.UserErrorCode;
+import com.oriole.wisepen.user.mapper.UserWalletsMapper;
 import com.oriole.wisepen.user.service.UserService;
 import com.oriole.wisepen.user.mapper.UserMapper;
 import com.oriole.wisepen.user.mapper.UserProfileMapper;
@@ -37,6 +39,7 @@ public class UserServiceImpl implements UserService {
 
     private final UserMapper userMapper;
     private final UserProfileMapper userProfileMapper;
+    private final UserWalletsMapper userWalletsMapper;
 
     @Autowired
     StringRedisTemplate redisTemplate;
@@ -81,6 +84,12 @@ public class UserServiceImpl implements UserService {
                 .college("复旦大学")
                 .build();
         userProfileMapper.insert(userProfile);
+
+        UserWallets userWallets = new UserWallets();
+        userWallets.setUserId(user.getId());
+        userWallets.setQuotaUsed(0);
+        userWallets.setQuotaLimit(0);
+        userWalletsMapper.insert(userWallets);
     }
 
     /**
