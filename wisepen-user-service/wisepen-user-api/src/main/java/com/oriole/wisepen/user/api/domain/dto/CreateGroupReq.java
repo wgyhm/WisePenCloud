@@ -4,8 +4,10 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
+import java.io.Serializable;
+
 @Data
-public class CreateGroupReq {
+public class CreateGroupReq implements Serializable {
 
 	@NotBlank(message = "groupName 不能为空")
 	private String groupName;
