@@ -32,6 +32,9 @@ public class Group implements Serializable {
 
     private String inviteCode;
 
+    /** 逻辑删除 0:未删 1:已删 */
+    @TableLogic
+    @TableField("del_flag")
     private Integer delFlag;
 
     private Integer memberCount;

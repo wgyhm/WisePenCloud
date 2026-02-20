@@ -33,9 +33,7 @@ public class GroupMemberServiceImpl implements GroupMemberService {
 	private final GroupMemberQuotasMapper groupMemberQuotasMapper;
 
 	public Boolean validateIsExisted(Long groupId){
-		Group res=groupMapper.selectOne(new LambdaQueryWrapper<Group>()
-				.eq(Group::getId,groupId));
-		return res!=null&&res.getDelFlag()==0;
+		return groupMapper.selectById(groupId) != null;
 	}
 
 	private GroupMember findGroupMemberByGroupId(Long userId, Long groupId){
@@ -141,7 +139,8 @@ public class GroupMemberServiceImpl implements GroupMemberService {
 	@Override
 	public void kickGroupMembers(Long operatorUserId, Long groupId, List<Long> targetUserIds) {
 		for (Long targetUserId : targetUserIds) {
-			kickGroupMember(operatorUserId, groupId, targetUserId); // 复用你原来的单个踢人逻辑
+			// 复用你原来的单个踢人逻辑
+			kickGroupMember(operatorUserId, groupId, targetUserId);
 		}
 	}
 

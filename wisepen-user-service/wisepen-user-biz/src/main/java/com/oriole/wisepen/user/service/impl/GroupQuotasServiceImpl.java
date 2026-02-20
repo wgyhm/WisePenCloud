@@ -38,9 +38,7 @@ public class GroupQuotasServiceImpl implements GroupQuotasService {
 	private final InviteCodeGenerator inviteCodeGenerator;
 
 	public Boolean validateIsExisted(Long groupId){
-		Group res=groupMapper.selectOne(new LambdaQueryWrapper<Group>()
-				.eq(Group::getId,groupId));
-		return res!=null&&res.getDelFlag()==0;
+		return groupMapper.selectById(groupId) != null;
 	}
 
 	@Override
