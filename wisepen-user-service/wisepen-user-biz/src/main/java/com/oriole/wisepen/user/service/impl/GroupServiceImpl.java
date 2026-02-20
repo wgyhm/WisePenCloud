@@ -24,6 +24,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -45,13 +46,13 @@ public class GroupServiceImpl implements GroupService {
     private final InviteCodeGenerator inviteCodeGenerator;
 
     //组是否存在（被删除也算不存在）
-    public Boolean validateIsExisted(Long groupId){
+    private Boolean validateIsExisted(Long groupId){
         Group res=groupMapper.selectOne(new LambdaQueryWrapper<Group>()
                 .eq(Group::getId,groupId));
         return res!=null&&res.getDelFlag()==0;
     }
     //当前是否是 group 的owner
-    public Boolean validatePermission (Long groupId){
+    private Boolean validatePermission (Long groupId){
         IdentityType type= SecurityContextHolder.getIdentityType();
         if (type==IdentityType.ADMIN) {
             return true;
@@ -86,15 +87,8 @@ public class GroupServiceImpl implements GroupService {
             throw new ServiceException(GroupErrorCode.NO_PERMISSION);
         }
         // 保证 inviteCode 唯一
-        String inviteCode=inviteCodeGenerator.generate8();
-        while (true) {
-            Group group1 = groupMapper.selectOne(new LambdaQueryWrapper<Group>().eq(Group::getInviteCode, inviteCode));
-            if (group1==null) {
-                break;
-            }
-            inviteCode=inviteCodeGenerator.generate8();
-        }
-        group.setInviteCode(inviteCodeGenerator.generate8());
+        String inviteCode=inviteCodeGenerator.generate16();
+        group.setInviteCode(inviteCode);
         // 调用 MP 的 Mapper 方法
         groupMapper.insert(group);
 
