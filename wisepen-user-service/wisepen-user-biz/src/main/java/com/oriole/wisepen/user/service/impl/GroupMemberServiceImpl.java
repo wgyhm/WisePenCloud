@@ -6,11 +6,11 @@ import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.oriole.wisepen.common.core.context.SecurityContextHolder;
+import com.oriole.wisepen.common.core.domain.enums.GroupRoleType;
 import com.oriole.wisepen.common.core.exception.ServiceException;
 import com.oriole.wisepen.user.api.domain.dto.MemberListQueryResp;
 import com.oriole.wisepen.user.api.domain.dto.PageResp;
 import com.oriole.wisepen.user.domain.entity.*;
-import com.oriole.wisepen.user.domain.enums.GroupIdentity;
 import com.oriole.wisepen.user.exception.GroupErrorCode;
 import com.oriole.wisepen.user.mapper.*;
 import com.oriole.wisepen.user.service.GroupMemberService;
@@ -72,7 +72,7 @@ public class GroupMemberServiceImpl implements GroupMemberService {
 		groupMember.setGroupId(group.getId());
 		groupMember.setUserId(userId);
 		//初始设为 member
-		groupMember.setRole(GroupIdentity.MEMBER.getCode());
+		groupMember.setRole(GroupRoleType.MEMBER);
 
 		insertGroupMember(groupMember,group.getType());
 	}
@@ -85,7 +85,7 @@ public class GroupMemberServiceImpl implements GroupMemberService {
 		groupMember.setGroupId(groupId);
 		groupMember.setUserId(userId);
 		//新建时默认为 OWNER
-		groupMember.setRole(GroupIdentity.OWNER.getCode());
+		groupMember.setRole(GroupRoleType.OWNER);
 
 		insertGroupMember(groupMember,group.getType());
 	}
@@ -120,16 +120,16 @@ public class GroupMemberServiceImpl implements GroupMemberService {
 		}
 
 		GroupMember groupMember=findGroupMemberByGroupId(userId,groupId);
-		if (groupMember==null) {
+		if (groupMember==null||groupMember.getRole()==GroupRoleType.NOT_MEMBER) {
 			throw new ServiceException(GroupErrorCode.MEMBER_NOT_IN_GROUP);
 		}
 		GroupMember targetGroupMember=findGroupMemberByGroupId(targetUserId,groupId);
-		if (targetGroupMember==null) {
+		if (targetGroupMember==null||targetGroupMember.getRole()==GroupRoleType.NOT_MEMBER) {
 			throw new ServiceException(GroupErrorCode.MEMBER_NOT_IN_GROUP);
 		}
 
 		//权限不够，权限高的操控权限低的
-		if (targetGroupMember.getRole()<=groupMember.getRole()) {
+		if (targetGroupMember.getRole().getCode()<=groupMember.getRole().getCode()) {
 			throw new ServiceException(GroupErrorCode.PERMISSION_IS_LOWER);
 		}
 
@@ -208,19 +208,23 @@ public class GroupMemberServiceImpl implements GroupMemberService {
 
 	@Override
 	public void updateGroupMemberRole(Long groupId, Long targetUserId, Integer role) {
-		Long userId=SecurityContextHolder.getUserId();
+		Long userId= Long.valueOf(SecurityContextHolder.getUserId());
+
 		if (targetUserId.equals(userId)){
 			throw new ServiceException(GroupErrorCode.DO_NOT_UPDATE_YOURSELF);
 		}
 		GroupMember targetGroupMember = findGroupMemberByGroupId(targetUserId, groupId);
-		if (targetGroupMember==null) {
+		if (targetGroupMember==null||targetGroupMember.getRole()==GroupRoleType.NOT_MEMBER) {
 			throw new ServiceException(GroupErrorCode.MEMBER_NOT_IN_GROUP);
 		}
 
 		GroupMember groupMember=findGroupMemberByGroupId(userId,groupId);
-		if (groupMember==null||!groupMember.getRole().equals(GroupIdentity.OWNER.getCode())) {
+		if (groupMember==null||
+				groupMember.getRole()==GroupRoleType.NOT_MEMBER||
+				!groupMember.getRole().equals(GroupRoleType.OWNER)) {
 			throw new ServiceException(GroupErrorCode.PERMISSION_IS_LOWER);
 		}
+
 		LambdaUpdateWrapper<GroupMember> wrapper = new LambdaUpdateWrapper<GroupMember>()
 				.eq(GroupMember::getId,targetGroupMember.getId())
 				.set(GroupMember::getRole,role);
