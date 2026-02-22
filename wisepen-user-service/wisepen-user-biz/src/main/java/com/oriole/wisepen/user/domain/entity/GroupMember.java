@@ -1,6 +1,10 @@
 package com.oriole.wisepen.user.domain.entity;
 
 import com.baomidou.mybatisplus.annotation.*;
+import com.baomidou.mybatisplus.annotation.FieldFill;
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableName;
+import com.oriole.wisepen.common.core.domain.enums.GroupRoleType;
 import lombok.Data;
 
 import java.io.Serial;
@@ -23,7 +27,9 @@ public class GroupMember implements Serializable {
     /** 用户ID */
     private Long userId;
 
-    private Integer role;
+    /** 用户角色 */
+    private GroupRoleType role;
 
+    @TableField(fill = FieldFill.INSERT)
     private LocalDateTime joinTime;
 }

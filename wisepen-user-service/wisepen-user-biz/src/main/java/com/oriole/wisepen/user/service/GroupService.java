@@ -5,10 +5,16 @@ import com.oriole.wisepen.user.api.domain.dto.PageResp;
 import com.oriole.wisepen.user.domain.entity.Group;
 
 import java.util.List;
+import java.util.Map;
+
 public interface GroupService {
     // 创建分组 (业务方法)
     void createGroup(Group group);
 
+    // 获取用户的所有组ID和角色
+    Map<String, Integer> getGroupRoleMapByUserId(Long userId);
+
+    // 获取用户的所有组ID
     // 更新分组
     void updateGroup(Group group);
 
