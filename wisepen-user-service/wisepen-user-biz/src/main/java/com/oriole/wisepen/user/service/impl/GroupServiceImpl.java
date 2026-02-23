@@ -7,11 +7,11 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.oriole.wisepen.common.core.context.SecurityContextHolder;
+import com.oriole.wisepen.common.core.domain.PageResult;
 import com.oriole.wisepen.common.core.domain.enums.IdentityType;
 import com.oriole.wisepen.common.core.exception.ServiceException;
 import com.oriole.wisepen.user.component.InviteCodeGenerator;
 import com.oriole.wisepen.user.api.domain.dto.GroupQueryResponse;
-import com.oriole.wisepen.user.api.domain.dto.PageResponse;
 import com.oriole.wisepen.user.domain.entity.Group;
 import com.oriole.wisepen.user.domain.entity.GroupMember;
 import com.oriole.wisepen.user.domain.entity.GroupWallets;
@@ -156,7 +156,7 @@ public class GroupServiceImpl implements GroupService {
     }
 
     @Override
-    public PageResponse<GroupQueryResponse> getGroupIds(Long userId, Integer type, Integer page, Integer size) {
+    public PageResult<GroupQueryResponse> getGroupIds(Long userId, Integer type, Integer page, Integer size) {
 
         Page<GroupMember> mpPage = new Page<>(page, size);
 
@@ -171,7 +171,7 @@ public class GroupServiceImpl implements GroupService {
         IPage<GroupMember> memberPage = groupMemberMapper.selectPage(mpPage, w);
 
         if (memberPage.getRecords().isEmpty()) {
-            return new PageResponse<>((int) memberPage.getPages(), Collections.emptyList());
+			return new PageResult<>(memberPage.getTotal(), page, size);
         }
         List<Long> groupIds = memberPage.getRecords().stream()
                 .map(GroupMember::getGroupId)
@@ -191,7 +191,9 @@ public class GroupServiceImpl implements GroupService {
                 .map(g -> BeanUtil.copyProperties(g, GroupQueryResponse.class))
                 .toList();
 
-        return new PageResponse<>((int) memberPage.getPages(), records);
+        PageResult<GroupQueryResponse> pr=new PageResult<>(memberPage.getTotal(), page, size);
+        pr.setList(records);
+        return pr;
     }
 
     @Override

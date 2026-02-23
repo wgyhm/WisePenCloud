@@ -1,7 +1,7 @@
 package com.oriole.wisepen.user.service;
 
+import com.oriole.wisepen.common.core.domain.PageResult;
 import com.oriole.wisepen.user.api.domain.dto.GroupQueryResponse;
-import com.oriole.wisepen.user.api.domain.dto.PageResponse;
 import com.oriole.wisepen.user.domain.entity.Group;
 
 import java.util.List;
@@ -25,7 +25,7 @@ public interface GroupService {
     List<Long> getGroupIdsByUserId(Long userId);
 
     // 获取用户的不同类型组ID (业务方法) (Type= 1-我管理的，2-我加入的）
-    PageResponse<GroupQueryResponse> getGroupIds(Long userId, Integer type, Integer page, Integer size);
+    PageResult<GroupQueryResponse> getGroupIds(Long userId, Integer type, Integer page, Integer size);
 
     // 获取组的详情 (业务方法)
     Group getGroupById(Long id);

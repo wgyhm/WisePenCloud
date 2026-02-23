@@ -6,10 +6,10 @@ import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.oriole.wisepen.common.core.context.SecurityContextHolder;
+import com.oriole.wisepen.common.core.domain.PageResult;
 import com.oriole.wisepen.common.core.domain.enums.GroupRoleType;
 import com.oriole.wisepen.common.core.exception.ServiceException;
 import com.oriole.wisepen.user.api.domain.dto.MemberListQueryResponse;
-import com.oriole.wisepen.user.api.domain.dto.PageResponse;
 import com.oriole.wisepen.user.domain.entity.*;
 import com.oriole.wisepen.user.exception.GroupErrorCode;
 import com.oriole.wisepen.user.mapper.*;
@@ -145,7 +145,7 @@ public class GroupMemberServiceImpl implements GroupMemberService {
 	}
 
 	@Override
-	public PageResponse<MemberListQueryResponse> getMemberList(Long groupId, Integer page, Integer size) {
+	public PageResult<MemberListQueryResponse> getMemberList(Long groupId, Integer page, Integer size) {
 		if (!validateIsExisted(groupId)) {
 			throw new ServiceException(GroupErrorCode.GROUP_NOT_EXIST);
 		}
@@ -164,7 +164,7 @@ public class GroupMemberServiceImpl implements GroupMemberService {
 				.toList();
 
 		if (ids.isEmpty()) {
-			return new PageResponse<>((int) memberRecords.getPages(), Collections.emptyList());
+			return new PageResult<>(memberRecords.getTotal(),page,size);
 		}
 		List<User> users=userMapper.selectBatchIds(ids);
 		List<UserProfile> userProfiles=userProfileMapper.selectBatchIds(ids);
@@ -196,14 +196,11 @@ public class GroupMemberServiceImpl implements GroupMemberService {
 			}
 			return resp;
 		}).toList();
-
-//		records.sort(
-//				Comparator.comparing(MemberListQueryResp::getRole, Comparator.nullsLast(Comparator.naturalOrder()))
-//						.thenComparing(MemberListQueryResp::getJoinTime, Comparator.nullsLast(Comparator.naturalOrder()))
-//		);
 		//加一个按照role和joinTime排序的操作。
 //		List<MemberListQueryResp> records=BeanUtil.copyToList(users,MemberListQueryResp.class);
-		return new PageResponse<>((int) memberRecords.getPages(), records);
+		PageResult<MemberListQueryResponse> pr = new PageResult<>(memberRecords.getTotal(), page, size);
+		pr.setList(records);
+		return pr;
 	}
 
 	@Override

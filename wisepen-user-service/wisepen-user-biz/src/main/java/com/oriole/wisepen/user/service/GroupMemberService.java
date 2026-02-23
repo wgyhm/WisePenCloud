@@ -1,7 +1,7 @@
 package com.oriole.wisepen.user.service;
 
+import com.oriole.wisepen.common.core.domain.PageResult;
 import com.oriole.wisepen.user.api.domain.dto.MemberListQueryResponse;
-import com.oriole.wisepen.user.api.domain.dto.PageResponse;
 
 import java.util.List;
 
@@ -13,7 +13,7 @@ public interface GroupMemberService {
 
 	void kickGroupMembers(Long operatorUserId, Long groupId, List<Long> targetUserIds);
 
-	PageResponse<MemberListQueryResponse> getMemberList(Long groupId, Integer page, Integer size);
+	PageResult<MemberListQueryResponse> getMemberList(Long groupId, Integer page, Integer size);
 
 	void updateGroupMemberRole(Long groupId, Long targetUserId, Integer role);
 

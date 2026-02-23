@@ -1,6 +1,7 @@
 package com.oriole.wisepen.user.controller;
 
 import com.oriole.wisepen.common.core.context.SecurityContextHolder;
+import com.oriole.wisepen.common.core.domain.PageResult;
 import com.oriole.wisepen.common.core.domain.R;
 import com.oriole.wisepen.common.security.annotation.CheckLogin;
 import com.oriole.wisepen.user.api.domain.dto.*;
@@ -65,7 +66,7 @@ public class GroupController {
 	// GET 不动
 	@CheckLogin
 	@GetMapping("/info")
-	public R<PageResponse<GroupQueryResponse>> getInfo(
+	public R<PageResult<GroupQueryResponse>> getInfo(
 			@RequestParam("relationType") @NonNull Integer relationType,
 			@RequestParam("page") @NonNull @Min(1) Integer page,
 			@RequestParam("size") @NonNull @Min(1) Integer size
