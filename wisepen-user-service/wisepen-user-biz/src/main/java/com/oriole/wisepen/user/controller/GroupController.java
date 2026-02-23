@@ -9,7 +9,6 @@ import com.oriole.wisepen.user.service.GroupMemberService;
 import com.oriole.wisepen.user.service.GroupService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotNull;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.validation.annotation.Validated;
@@ -26,7 +25,7 @@ public class GroupController {
 
 	@CheckLogin
 	@PostMapping("/new")
-	public R<?> createGroup(@RequestBody @Valid CreateGroupReq req) {
+	public R<?> createGroup(@RequestBody @Valid CreateGroupRequest req) {
 
 		Group group = new Group();
 		group.setName(req.getGroupName());
@@ -46,7 +45,7 @@ public class GroupController {
 
 	@CheckLogin
 	@PostMapping("/edit")
-	public R<?> updateGroup(@RequestBody @Valid UpdateGroupReq req) {
+	public R<?> updateGroup(@RequestBody @Valid UpdateGroupRequest req) {
 		Group group = new Group();
 		group.setId(req.getGroupId());
 		group.setName(req.getGroupName());
@@ -58,7 +57,7 @@ public class GroupController {
 
 	@CheckLogin
 	@PostMapping("/delete")
-	public R<?> deleteGroup(@RequestBody @Valid DeleteGroupReq req) {
+	public R<?> deleteGroup(@RequestBody @Valid DeleteGroupRequest req) {
 		groupService.deleteGroup(req.getGroupId());
 		return R.ok();
 	}
@@ -66,7 +65,7 @@ public class GroupController {
 	// GET 不动
 	@CheckLogin
 	@GetMapping("/info")
-	public R<PageResp<GroupQueryResp>> getInfo(
+	public R<PageResponse<GroupQueryResponse>> getInfo(
 			@RequestParam("relationType") @NonNull Integer relationType,
 			@RequestParam("page") @NonNull @Min(1) Integer page,
 			@RequestParam("size") @NonNull @Min(1) Integer size

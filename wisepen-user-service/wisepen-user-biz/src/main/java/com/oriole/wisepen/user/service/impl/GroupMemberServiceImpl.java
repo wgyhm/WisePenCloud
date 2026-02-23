@@ -8,8 +8,8 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.oriole.wisepen.common.core.context.SecurityContextHolder;
 import com.oriole.wisepen.common.core.domain.enums.GroupRoleType;
 import com.oriole.wisepen.common.core.exception.ServiceException;
-import com.oriole.wisepen.user.api.domain.dto.MemberListQueryResp;
-import com.oriole.wisepen.user.api.domain.dto.PageResp;
+import com.oriole.wisepen.user.api.domain.dto.MemberListQueryResponse;
+import com.oriole.wisepen.user.api.domain.dto.PageResponse;
 import com.oriole.wisepen.user.domain.entity.*;
 import com.oriole.wisepen.user.exception.GroupErrorCode;
 import com.oriole.wisepen.user.mapper.*;
@@ -145,7 +145,7 @@ public class GroupMemberServiceImpl implements GroupMemberService {
 	}
 
 	@Override
-	public PageResp<MemberListQueryResp> getMemberList(Long groupId, Integer page, Integer size) {
+	public PageResponse<MemberListQueryResponse> getMemberList(Long groupId, Integer page, Integer size) {
 		if (!validateIsExisted(groupId)) {
 			throw new ServiceException(GroupErrorCode.GROUP_NOT_EXIST);
 		}
@@ -164,7 +164,7 @@ public class GroupMemberServiceImpl implements GroupMemberService {
 				.toList();
 
 		if (ids.isEmpty()) {
-			return new PageResp<>((int) memberRecords.getPages(), Collections.emptyList());
+			return new PageResponse<>((int) memberRecords.getPages(), Collections.emptyList());
 		}
 		List<User> users=userMapper.selectBatchIds(ids);
 		List<UserProfile> userProfiles=userProfileMapper.selectBatchIds(ids);
@@ -175,8 +175,8 @@ public class GroupMemberServiceImpl implements GroupMemberService {
 		Map<Long, UserProfile> userProfileMap = userProfiles.stream()
 				.collect(Collectors.toMap(UserProfile::getUserId, u -> u, (a, b) -> a));
 
-		List<MemberListQueryResp> records = memberRecords.getRecords().stream().map(gm -> {
-			MemberListQueryResp resp = new MemberListQueryResp();
+		List<MemberListQueryResponse> records = memberRecords.getRecords().stream().map(gm -> {
+			MemberListQueryResponse resp = new MemberListQueryResponse();
 			Long uid = gm.getUserId();
 
 			resp.setUserId(uid);
@@ -203,7 +203,7 @@ public class GroupMemberServiceImpl implements GroupMemberService {
 //		);
 		//加一个按照role和joinTime排序的操作。
 //		List<MemberListQueryResp> records=BeanUtil.copyToList(users,MemberListQueryResp.class);
-		return new PageResp<>((int) memberRecords.getPages(), records);
+		return new PageResponse<>((int) memberRecords.getPages(), records);
 	}
 
 	@Override

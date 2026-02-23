@@ -23,7 +23,7 @@ public class GroupMemberController {
 
 	@CheckLogin
 	@PostMapping("/join")
-	public R<Void> joinGroup(@RequestBody @Valid JoinGroupReq req) {
+	public R<Void> joinGroup(@RequestBody @Valid JoinGroupRequest req) {
 		Long userId = Long.valueOf(SecurityContextHolder.getUserId());
 		groupMemberService.joinGroup(userId, req.getInviteCode());
 		return R.ok();
@@ -31,7 +31,7 @@ public class GroupMemberController {
 
 	@CheckLogin
 	@PostMapping("/quit")
-	public R<Void> quitGroup(@RequestBody @Valid QuitGroupReq req) {
+	public R<Void> quitGroup(@RequestBody @Valid QuitGroupRequest req) {
 		Long userId = Long.valueOf(SecurityContextHolder.getUserId());
 		groupMemberService.leaveGroup(userId, req.getGroupId());
 		return R.ok();
@@ -39,7 +39,7 @@ public class GroupMemberController {
 
 	@CheckLogin
 	@PostMapping("/kick")
-	public R<Void> kickGroup(@RequestBody @Valid KickGroupReq req) {
+	public R<Void> kickGroup(@RequestBody @Valid KickGroupRequest req) {
 		Long userId = Long.valueOf(SecurityContextHolder.getUserId());
 		groupMemberService.kickGroupMembers(userId, req.getGroupId(), req.getTargetUserIds());
 		return R.ok();
@@ -47,7 +47,7 @@ public class GroupMemberController {
 
 	@CheckLogin
 	@PostMapping("/update-role")
-	public R<Void> updateRole(@RequestBody @Valid UpdateRoleReq req) {
+	public R<Void> updateRole(@RequestBody @Valid UpdateRoleRequest req) {
 		groupMemberService.updateGroupMemberRole(req.getGroupId(), req.getTargetUserId(), req.getRole());
 		return R.ok();
 	}
@@ -55,7 +55,7 @@ public class GroupMemberController {
 
 	@CheckLogin
 	@GetMapping("/info")
-	public R<PageResp<MemberListQueryResp>> getGroupMember(
+	public R<PageResponse<MemberListQueryResponse>> getGroupMember(
 			@RequestParam("groupId") @NotNull Long groupId,
 			@RequestParam("page") @NonNull @Min(1) Integer page,
 			@RequestParam("size") @NonNull @Min(1) Integer size
