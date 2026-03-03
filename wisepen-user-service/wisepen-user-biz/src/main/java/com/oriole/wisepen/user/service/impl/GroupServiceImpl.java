@@ -13,6 +13,7 @@ import com.oriole.wisepen.common.core.domain.enums.IdentityType;
 import com.oriole.wisepen.common.core.exception.ServiceException;
 import com.oriole.wisepen.user.api.domain.dto.*;
 import com.oriole.wisepen.user.component.InviteCodeGenerator;
+import com.oriole.wisepen.user.component.RedisSaver;
 import com.oriole.wisepen.user.domain.entity.Group;
 import com.oriole.wisepen.user.domain.entity.GroupMember;
 import com.oriole.wisepen.user.domain.entity.GroupWallets;
@@ -43,6 +44,7 @@ public class GroupServiceImpl implements GroupService {
     private final GroupMemberQuotasMapper groupMemberQuotasMapper;
     private final InviteCodeGenerator inviteCodeGenerator;
     private final UserService userService;
+    private final RedisSaver redisSaver;
 
     //组是否存在（被删除也算不存在）
     private Boolean validateIsExisted(Long groupId){
@@ -150,7 +152,12 @@ public class GroupServiceImpl implements GroupService {
         groupMapper.update(wrapper);
 
         LambdaUpdateWrapper<GroupMember> wrapper1 = new LambdaUpdateWrapper<GroupMember>().eq(GroupMember::getGroupId, groupId);
+        List<GroupMember> groupMembers = groupMemberMapper.selectList(wrapper1);
         groupMemberMapper.delete(wrapper1);
+        for (GroupMember groupMember : groupMembers) {
+            Long userId = groupMember.getUserId();
+            redisSaver.updateGroupRoleMap(userId,getGroupRoleMapByUserId(userId));
+        }
     }
 
     @Override

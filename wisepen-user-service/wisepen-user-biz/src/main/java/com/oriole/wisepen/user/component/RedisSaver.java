@@ -33,9 +33,13 @@ public class RedisSaver {
 		return sessionId;
 	}
 
-	public boolean updateGroupRoleMap(String sessionId, Map<String, Object> groupRoleMap) {
+	public void updateGroupRoleMap(Long userId, Map<String, Integer> groupRoleMap) {
+		String sessionId=getSessionIdByUserId(userId.toString());
+		if (sessionId==null) {
+			return;
+		}
 		if (StrUtil.isBlank(sessionId)) {
-			return false;
+			return;
 		}
 		String normalizedSessionId = StrUtil.trim(sessionId);
 		if ((normalizedSessionId.startsWith("\"") && normalizedSessionId.endsWith("\""))
@@ -45,7 +49,7 @@ public class RedisSaver {
 		String redisKey = REDIS_SESSION_PREFIX + normalizedSessionId;
 		String sessionJson = stringRedisTemplate.opsForValue().get(redisKey);
 		if (StrUtil.isBlank(sessionJson)) {
-			return false;
+			return;
 		}
 		Long ttlSeconds = stringRedisTemplate.getExpire(redisKey, TimeUnit.SECONDS);
 		String updatedJson = JSONUtil.parseObj(sessionJson)
@@ -56,6 +60,5 @@ public class RedisSaver {
 		} else {
 			stringRedisTemplate.opsForValue().set(redisKey, updatedJson, ttlSeconds, TimeUnit.SECONDS);
 		}
-		return true;
 	}
 }

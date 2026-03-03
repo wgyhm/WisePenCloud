@@ -12,10 +12,12 @@ import com.oriole.wisepen.common.core.domain.enums.GroupType;
 import com.oriole.wisepen.common.core.domain.enums.IdentityType;
 import com.oriole.wisepen.common.core.exception.ServiceException;
 import com.oriole.wisepen.user.api.domain.dto.MemberListQueryResponse;
+import com.oriole.wisepen.user.component.RedisSaver;
 import com.oriole.wisepen.user.domain.entity.*;
 import com.oriole.wisepen.user.exception.GroupErrorCode;
 import com.oriole.wisepen.user.mapper.*;
 import com.oriole.wisepen.user.service.GroupMemberService;
+import com.oriole.wisepen.user.service.GroupService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -33,6 +35,8 @@ public class GroupMemberServiceImpl implements GroupMemberService {
 	private final UserMapper userMapper;
 	private final UserProfileMapper userProfileMapper;
 	private final GroupMemberQuotasMapper groupMemberQuotasMapper;
+	private final GroupService groupService;
+	private final RedisSaver redisSaver;
 
 	public Boolean validateIsExisted(Long groupId){
 		return groupMapper.selectById(groupId) != null;
@@ -77,6 +81,7 @@ public class GroupMemberServiceImpl implements GroupMemberService {
 		groupMember.setRole(GroupRoleType.MEMBER);
 
 		insertGroupMember(groupMember,group.getType());
+		redisSaver.updateGroupRoleMap(userId,groupService.getGroupRoleMapByUserId(userId));
 	}
 
 	@Override
@@ -90,6 +95,7 @@ public class GroupMemberServiceImpl implements GroupMemberService {
 		groupMember.setRole(GroupRoleType.OWNER);
 
 		insertGroupMember(groupMember,group.getType());
+		redisSaver.updateGroupRoleMap(userId,groupService.getGroupRoleMapByUserId(userId));
 	}
 
 	@Override
@@ -119,6 +125,7 @@ public class GroupMemberServiceImpl implements GroupMemberService {
 		}
 
 		groupMemberMapper.deleteById(groupMember);
+		redisSaver.updateGroupRoleMap(userId,groupService.getGroupRoleMapByUserId(userId));
 	}
 
 	@Override
@@ -146,6 +153,7 @@ public class GroupMemberServiceImpl implements GroupMemberService {
 		}
 
 		groupMemberMapper.deleteById(targetGroupMember);
+		redisSaver.updateGroupRoleMap(targetUserId,groupService.getGroupRoleMapByUserId(targetUserId));
 	}
 
 	@Override
@@ -237,6 +245,7 @@ public class GroupMemberServiceImpl implements GroupMemberService {
 		LambdaUpdateWrapper<GroupMember> wrapper = new LambdaUpdateWrapper<GroupMember>()
 				.eq(GroupMember::getId,targetGroupMember.getId())
 				.set(GroupMember::getRole,role);
+		redisSaver.updateGroupRoleMap(targetUserId,groupService.getGroupRoleMapByUserId(targetUserId));
 		groupMemberMapper.update(wrapper);
 	}
 }

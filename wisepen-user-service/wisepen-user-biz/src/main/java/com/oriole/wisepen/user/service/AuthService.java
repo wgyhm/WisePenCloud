@@ -117,12 +117,12 @@ public class AuthService {
                 log.warn("Failed to parse session json: sessionId={}", sessionId, e);
             }
         }
-        // 直接�?Redis 中物理删除该 Session
+        // 直接从 Redis 中物理删除该 Session
         Boolean deleted = stringRedisTemplate.delete(redisKey);
         if (deleted) {
             log.info("用户主动注销成功，已清理 Redis 会话: sessionId={}", sessionId);
         } else {
-            log.warn("用户注销时会话已不存在或已过�? sessionId={}", sessionId);
+            log.warn("用户注销时会话已不存在或已过 sessionId={}", sessionId);
         }
     }
 }
