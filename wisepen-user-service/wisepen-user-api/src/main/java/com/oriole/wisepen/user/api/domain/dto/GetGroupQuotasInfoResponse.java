@@ -5,9 +5,7 @@ import lombok.Data;
 import java.io.Serializable;
 
 @Data
-public class GetMyGroupQuotasResponse implements Serializable {
-	Long groupId;
-	String groupName;
-	Integer quotaLimit;
+public class GetGroupQuotasInfoResponse implements Serializable {
 	Integer quotaUsed;
+	Integer quotaLimit;
 }

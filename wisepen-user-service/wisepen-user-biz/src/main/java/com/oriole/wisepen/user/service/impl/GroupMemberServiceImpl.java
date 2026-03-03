@@ -57,6 +57,15 @@ public class GroupMemberServiceImpl implements GroupMemberService {
 			groupMemberQuotas.setId(groupMember.getId());
 			groupMemberQuotas.setQuotaUsed(0);
 			groupMemberQuotas.setQuotaLimit(0);
+			groupMemberQuotasMapper.insert(groupMemberQuotas);
+		}
+	}
+
+	private void deleteGroupMember(GroupMember groupMember, GroupType type){
+		groupMemberMapper.deleteById(groupMember.getId());
+
+		if (type!=GroupType.NORMAL_GROUP) {
+			groupMemberMapper.deleteById(groupMember.getId());
 		}
 	}
 
@@ -124,7 +133,7 @@ public class GroupMemberServiceImpl implements GroupMemberService {
 			throw new ServiceException(GroupErrorCode.MEMBER_IS_OWNER);
 		}
 
-		groupMemberMapper.deleteById(groupMember);
+		deleteGroupMember(groupMember,group.getType());
 		redisSaver.updateGroupRoleMap(userId,groupService.getGroupRoleMapByUserId(userId));
 	}
 
@@ -152,7 +161,8 @@ public class GroupMemberServiceImpl implements GroupMemberService {
 			throw new ServiceException(GroupErrorCode.PERMISSION_IS_LOWER);
 		}
 
-		groupMemberMapper.deleteById(targetGroupMember);
+		Group group=groupMapper.selectById(groupId);
+		deleteGroupMember(targetGroupMember,group.getType());
 		redisSaver.updateGroupRoleMap(targetUserId,groupService.getGroupRoleMapByUserId(targetUserId));
 	}
 
