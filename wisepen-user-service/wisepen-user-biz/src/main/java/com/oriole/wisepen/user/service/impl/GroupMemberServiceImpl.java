@@ -70,7 +70,7 @@ public class GroupMemberServiceImpl implements GroupMemberService {
 		groupMemberMapper.insert(member);
 
 		// 更新 Redis
-		redisCacheManager.updateGroupRoleMapInSession(userId, groupId, GroupRoleType.MEMBER);
+		redisCacheManager.updateGroupRoleMapInSession(userId, groupId, groupRoleType);
 	}
 
 	@Override
