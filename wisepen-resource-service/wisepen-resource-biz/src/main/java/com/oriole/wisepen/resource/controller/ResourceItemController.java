@@ -36,7 +36,7 @@ public class ResourceItemController {
     @Operation(summary = "重命名资源", description = "用户修改资源名称")
     @PostMapping("/renameRes")
     public R<Void> renameResource(@Validated @RequestBody ResourceRenameRequest req) {
-        resourceService.assertResourceOwner(req.getResourceId(), SecurityContextHolder.getUserId());
+        resourceService.assertResourceOwner(req.getResourceId(), SecurityContextHolder.getUserId().toString());
         resourceService.renameResource(req);
         return R.ok();
     }
@@ -45,13 +45,13 @@ public class ResourceItemController {
     @Operation(summary = "更新资源标签", description = "用户修改资源的标签列表")
     @PostMapping("/updateTags")
     public R<Void> updateResourceTags(@Validated @RequestBody ResourceUpdateTagsRequest req) {
-        String userId = SecurityContextHolder.getUserId();
+        String userId = SecurityContextHolder.getUserId().toString();
         resourceService.assertResourceOwner(req.getResourceId(), userId);
         if (!StringUtils.hasText(req.getGroupId())) {
             req.setGroupId(ResourceConstants.PERSONAL_GROUP_PREFIX + userId);
         } else {
             // 如果传了 groupId，则必须校验用户在该组内
-            SecurityContextHolder.assertInGroup(req.getGroupId());
+            SecurityContextHolder.assertInGroup(Long.parseLong(req.getGroupId()));
         }
         resourceService.updateResourceTags(req);
         return R.ok();
@@ -78,11 +78,11 @@ public class ResourceItemController {
             @Parameter(description = "排序字段枚举")
             @RequestParam(value = "sortBy", defaultValue = "UPDATE_TIME") ResourceSortByEnum sortBy,
             @RequestParam(value = "sortDir", defaultValue = "DESC") SortDirectionEnum sortDir) {
-        String userId = SecurityContextHolder.getUserId();
+        String userId = SecurityContextHolder.getUserId().toString();
 
         GroupRoleType userGroupRole = null;
         if (StringUtils.hasText(groupId)) {
-            userGroupRole = SecurityContextHolder.assertInGroup(groupId); // 不传groupId无需检查小组权限
+            userGroupRole = SecurityContextHolder.assertInGroup(Long.valueOf(groupId)); // 不传groupId无需检查小组权限
         }
 
         PageResult<ResourceItemResponse> result = resourceService.listResources(

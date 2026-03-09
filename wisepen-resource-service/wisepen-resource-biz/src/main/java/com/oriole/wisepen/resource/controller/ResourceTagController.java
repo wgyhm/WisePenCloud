@@ -75,9 +75,9 @@ public class ResourceTagController {
             tagSpaceBase.setGroupId(PERSONAL_GROUP_PREFIX + SecurityContextHolder.getUserId()); // 个人私有空间 (p_开头)
         } else { // 正常群组
             if (isWriteOp){ // 写操作，必须是群组的 Admin 或 Owner
-                SecurityContextHolder.assertGroupRole(tagSpaceBase.getGroupId(), GroupRoleType.OWNER, GroupRoleType.ADMIN);
+                SecurityContextHolder.assertGroupRole(Long.valueOf(tagSpaceBase.getGroupId()), GroupRoleType.OWNER, GroupRoleType.ADMIN);
             } else { // 读操作，必须是群组成员
-                SecurityContextHolder.assertInGroup(tagSpaceBase.getGroupId());
+                SecurityContextHolder.assertInGroup(Long.valueOf(tagSpaceBase.getGroupId()));
             }
         }
     }
