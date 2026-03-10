@@ -6,10 +6,12 @@ import com.oriole.wisepen.common.core.constant.SecurityConstants;
 import com.oriole.wisepen.common.core.context.GrayContextHolder;
 import com.oriole.wisepen.common.core.context.SecurityContextHolder;
 
+import jakarta.servlet.http.Cookie;
 import org.springframework.util.StringUtils;
 import org.springframework.web.servlet.HandlerInterceptor;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.web.util.WebUtils;
 
 import java.nio.file.AccessDeniedException;
 
@@ -30,6 +32,10 @@ public class HeaderInterceptor implements HandlerInterceptor {
             return false;
         }
 
+        // 从 Cookie 中获取 AUTHORIZATION_TOKEN
+        Cookie cookie = WebUtils.getCookie(request, SecurityConstants.COOKIE_AUTHORIZATION_TOKEN);
+        String userAuthTokenStr = cookie!=null ? cookie.getValue() : null;
+
         // 从 Header 中获取 APISIX 透传的明文信息
         String userIdStr = request.getHeader(SecurityConstants.HEADER_USER_ID);
         String identityTypeStr = request.getHeader(SecurityConstants.HEADER_IDENTITY_TYPE);
@@ -37,7 +43,8 @@ public class HeaderInterceptor implements HandlerInterceptor {
 
         // 如果 Header 里有 UserID，说明网关已认证通过
         if (StrUtil.isNotBlank(userIdStr)) {
-            SecurityContextHolder.setUserId(userIdStr);
+            SecurityContextHolder.setUserId(Long.valueOf(userIdStr));
+            SecurityContextHolder.setUserAuthToken(userAuthTokenStr);
 
             if (StrUtil.isNotBlank(identityTypeStr)) {
                 SecurityContextHolder.setIdentityType(Integer.parseInt(identityTypeStr));

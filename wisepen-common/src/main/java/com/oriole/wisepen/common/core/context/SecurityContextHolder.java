@@ -33,7 +33,11 @@ public class SecurityContextHolder {
             map = new ConcurrentHashMap<>();
             THREAD_LOCAL.set(map);
         }
-        map.put(key, value);
+        if (value == null) {
+            map.remove(key);
+        } else {
+            map.put(key, value);
+        }
     }
 
     // 获取值并转换为指定类型
@@ -42,11 +46,17 @@ public class SecurityContextHolder {
         return map == null ? null : Convert.convert(clazz, map.get(key));
     }
 
+    // 设置当前用户认证令牌
+    public static void setUserAuthToken(String authToken) { set(SecurityConstants.COOKIE_AUTHORIZATION_TOKEN, authToken); }
+
+    // 获取当前用户认证令牌
+    public static String getUserAuthToken() { return get(SecurityConstants.COOKIE_AUTHORIZATION_TOKEN, String.class); }
+
     // 设置当前用户ID
-    public static void setUserId(String userId) { set(SecurityConstants.HEADER_USER_ID, userId); }
+    public static void setUserId(Long userId) { set(SecurityConstants.HEADER_USER_ID, userId); }
 
     // 获取当前用户ID
-    public static String getUserId() { return get(SecurityConstants.HEADER_USER_ID, String.class); }
+    public static Long getUserId() { return get(SecurityConstants.HEADER_USER_ID, Long.class); }
 
     // 设置用户身份类型
     public static void setIdentityType(Integer code) { set(SecurityConstants.HEADER_IDENTITY_TYPE, IdentityType.getByCode(code)); }
@@ -58,8 +68,8 @@ public class SecurityContextHolder {
     public static void setGroupRoleMap(String groupRoleMapJson) {
         Map<String, Integer> rawMap = JSONUtil.toBean(groupRoleMapJson, new TypeReference<Map<String, Integer>>() {}, false);
         if (CollUtil.isNotEmpty(rawMap)) {
-            Map<String, GroupRoleType> typedMap = rawMap.entrySet().stream().map(e -> new AbstractMap.SimpleEntry<>(
-                    e.getKey(),
+            Map<Long, GroupRoleType> typedMap = rawMap.entrySet().stream().map(e -> new AbstractMap.SimpleEntry<>(
+                    Long.valueOf(e.getKey()),
                     GroupRoleType.getByCode(e.getValue())
             )).collect(Collectors.toMap(AbstractMap.SimpleEntry::getKey, AbstractMap.SimpleEntry::getValue));
             set(SecurityConstants.HEADER_GROUP_ROLE_MAP, typedMap);
@@ -68,12 +78,12 @@ public class SecurityContextHolder {
 
     // 获取用户所在的Group与Role
     @SuppressWarnings("unchecked")
-    public static Map<String, GroupRoleType> getGroupRoleMap() {
-        Map<String, GroupRoleType> map = get(SecurityConstants.HEADER_GROUP_ROLE_MAP, Map.class);
+    public static Map<Long, GroupRoleType> getGroupRoleMap() {
+        Map<Long, GroupRoleType> map = get(SecurityConstants.HEADER_GROUP_ROLE_MAP, Map.class);
         return map != null ? map : Collections.emptyMap();
     }
 
-    public static GroupRoleType getGroupRole(String targetGroupId) {
+    public static GroupRoleType getGroupRole(Long targetGroupId) {
         if (targetGroupId == null) {
             return GroupRoleType.NOT_MEMBER;
         }
@@ -81,13 +91,13 @@ public class SecurityContextHolder {
         return groupRole != null ? groupRole : GroupRoleType.NOT_MEMBER;
     }
 
-    public static void assertUserId(String userId) {
+    public static void assertUserId(Long userId) {
         if (!userId.equals(getUserId())){
             throw new PermissionException(PermissionErrorCode.OPERATION_UNAUTHORIZED);
         }
     }
 
-    public static GroupRoleType assertInGroup(String targetGroupId) {
+    public static GroupRoleType assertInGroup(Long targetGroupId) {
         GroupRoleType currentRole = getGroupRole(targetGroupId);
         if (currentRole == GroupRoleType.NOT_MEMBER){
             throw new PermissionException(PermissionErrorCode.OPERATION_UNAUTHORIZED);
@@ -95,7 +105,7 @@ public class SecurityContextHolder {
         return currentRole;
     }
 
-    public static void assertGroupRole(String targetGroupId, List<GroupRoleType> requiredRoles) {
+    public static void assertGroupRole(Long targetGroupId, List<GroupRoleType> requiredRoles) {
         if (targetGroupId == null || CollUtil.isEmpty(requiredRoles)) {
             throw new ServiceException(ResultCode.SYSTEM_ERROR);
         }
@@ -105,7 +115,7 @@ public class SecurityContextHolder {
         }
     }
 
-    public static void assertGroupRole(String targetGroupId, GroupRoleType... requiredRoles) {
+    public static void assertGroupRole(Long targetGroupId, GroupRoleType... requiredRoles) {
         assertGroupRole(targetGroupId, Arrays.asList(requiredRoles));
     }
 

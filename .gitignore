@@ -3,16 +3,13 @@ target/
 !**/src/main/**/target/
 !**/src/test/**/target/
 
+opentelemetry-javaagent.jar
+
 dev.properties
 logs
 
 ### IntelliJ IDEA ###
 .idea/
-.gitignore
-.idea/modules.xml
-.idea/jarRepositories.xml
-.idea/compiler.xml
-.idea/libraries/
 *.iws
 *.iml
 *.ipr
@@ -42,3 +39,4 @@ build/
 
 ### Mac OS ###
 .DS_Store
+/.idea/

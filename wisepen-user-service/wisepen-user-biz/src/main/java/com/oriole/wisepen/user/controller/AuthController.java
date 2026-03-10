@@ -1,11 +1,13 @@
 package com.oriole.wisepen.user.controller;
 
 import cn.hutool.core.util.StrUtil;
+import com.oriole.wisepen.common.core.context.SecurityContextHolder;
 import com.oriole.wisepen.common.core.domain.R;
-import com.oriole.wisepen.user.api.domain.dto.LoginRequest;
-import com.oriole.wisepen.user.api.domain.dto.RegisterRequest;
-import com.oriole.wisepen.user.api.domain.dto.ResetExecuteRequest;
-import com.oriole.wisepen.user.api.domain.dto.ResetRequest;
+import com.oriole.wisepen.common.security.annotation.CheckLogin;
+import com.oriole.wisepen.user.api.domain.dto.req.AuthLoginRequest;
+import com.oriole.wisepen.user.api.domain.dto.req.AuthRegisterRequest;
+import com.oriole.wisepen.user.api.domain.dto.req.AuthPwdResetRequest;
+import com.oriole.wisepen.user.api.domain.dto.req.AuthPwdResetVerifyRequest;
 import com.oriole.wisepen.user.service.AuthService;
 import com.oriole.wisepen.user.service.UserService;
 import jakarta.servlet.http.Cookie;
@@ -27,7 +29,7 @@ public class AuthController {
     private final UserService userService;
 
     @PostMapping("/login")
-    public R<Void> login(@Valid @RequestBody LoginRequest loginRequest, HttpServletResponse response) {
+    public R<Void> login(@Valid @RequestBody AuthLoginRequest loginRequest, HttpServletResponse response) {
         String sessionId = authService.login(loginRequest);
 
         Cookie cookie = buildAuthCookie(sessionId, 7 * 24 * 60 * 60);
@@ -35,6 +37,7 @@ public class AuthController {
         return R.ok();
     }
 
+    @CheckLogin
     @PostMapping("/logout")
     public R<Void> logout(HttpServletRequest request, HttpServletResponse response) {
         String sessionId = null;
@@ -43,7 +46,7 @@ public class AuthController {
         sessionId = (cookie != null) ? cookie.getValue() : null;
 
         if (StrUtil.isNotBlank(sessionId)) {
-            authService.logout(sessionId);
+            authService.logout(sessionId, SecurityContextHolder.getUserId());
         }
 
         // 创建一个同名、同路径的空 Cookie
@@ -62,22 +65,21 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public R<String> register(@Valid @RequestBody RegisterRequest registerRequest) {
-        userService.register(registerRequest);
+    public R<String> register(@Valid @RequestBody AuthRegisterRequest req) {
+        userService.register(req);
         return R.ok();
     }
 
     @PostMapping("/forgot-password/email")
-    public R<Void> forgotPassword(@Valid @RequestBody ResetRequest resetRequest) {
-        userService.sendResetMail(resetRequest);
+    public R<Void> forgotPassword(@Valid @RequestBody AuthPwdResetVerifyRequest req) {
+        userService.sendResetMail(req);
         return R.ok();
     }
 
     @PostMapping("/forgot-password/reset")
-    public R<Void> resetPassword(@Valid @RequestBody ResetExecuteRequest resetExecuteRequest) {
-        userService.resetPassword(resetExecuteRequest);
+    public R<Void> resetPassword(@Valid @RequestBody AuthPwdResetRequest req) {
+        userService.resetPassword(req);
         return R.ok();
     }
-
 
 }

@@ -14,25 +14,16 @@ import lombok.NoArgsConstructor;
 import java.io.Serial;
 import java.io.Serializable;
 
-/**
- * 用户详细档案实体
- */
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 @TableName("sys_user_profile")
-public class UserProfile implements Serializable {
-
-    @Serial
-    private static final long serialVersionUID = 1L;
+public class UserProfileEntity implements Serializable {
 
     @TableId(type = IdType.INPUT)
     private Long userId;
 
-    private String realName;
-
-    @TableField("sex")
     private GenderType sex;
 
     private String university;
@@ -40,15 +31,11 @@ public class UserProfile implements Serializable {
 
     private String major;
 
-    @TableField("class_name")
     private String className;
 
-    @TableField("enrollment_year")
     private Integer enrollmentYear;
 
-    @TableField("degree_level")
     private DegreeLevel degreeLevel;
 
-    @TableField("academic_title")
     private String academicTitle;
 }

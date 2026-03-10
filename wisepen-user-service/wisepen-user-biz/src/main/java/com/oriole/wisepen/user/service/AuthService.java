@@ -1,14 +1,13 @@
 package com.oriole.wisepen.user.service;
 
-import cn.hutool.core.util.IdUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.crypto.digest.BCrypt;
-import cn.hutool.json.JSONUtil;
 import com.oriole.wisepen.common.core.exception.ServiceException;
 import com.oriole.wisepen.user.api.enums.Status;
+import com.oriole.wisepen.user.cache.RedisCacheManager;
 import com.oriole.wisepen.user.exception.UserErrorCode;
-import com.oriole.wisepen.user.api.domain.dto.LoginRequest;
-import com.oriole.wisepen.user.domain.entity.User;
+import com.oriole.wisepen.user.api.domain.dto.req.AuthLoginRequest;
+import com.oriole.wisepen.user.domain.entity.UserEntity;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -22,18 +21,14 @@ import java.util.concurrent.TimeUnit;
 public class AuthService {
 
     private final UserService userService;
-    private final GroupService groupService;
+    private final GroupMemberService groupMemberService;
+    private final RedisCacheManager redisCacheManager;
 
-    private final StringRedisTemplate stringRedisTemplate;
-
-    private static final String REDIS_SESSION_PREFIX = "wisepen:user:auth:session:";
-    private static final long SESSION_TIMEOUT_DAYS = 7;
-
-    public String login(LoginRequest loginRequest) {
+    public String login(AuthLoginRequest loginRequest) {
         String account = loginRequest.getAccount();
 
         // 查询用户信息 (包含密码密文)
-        User user = userService.getUserCoreInfoByAccount(account);
+        UserEntity user = userService.getUserCoreInfoByAccount(account);
 
         // 账号不存在
         if (user==null){
@@ -50,43 +45,21 @@ public class AuthService {
             throw new ServiceException(UserErrorCode.USER_PASSWORD_ERROR);
         }
 
-        Map<String, Integer> groupRoleMap = groupService.getGroupRoleMapByUserId(user.getId());
+        Map<String, Integer> groupRoleMap = groupMemberService.getGroupRoleMapByUserId(user.getUserId());
 
-        // 构建 Session 上下文数据
-        Map<String, Object> sessionData = new HashMap<>();
-        sessionData.put("userId", user.getId().toString());
-        sessionData.put("identityType", user.getIdentityType().getCode());
-        sessionData.put("groupRoleMap", groupRoleMap);
-
-        String sessionId = IdUtil.fastSimpleUUID();
-        String redisKey = REDIS_SESSION_PREFIX + sessionId;
-
-        // 存入 Redis
-        stringRedisTemplate.opsForValue().set(
-                redisKey,
-                JSONUtil.toJsonStr(sessionData),
-                SESSION_TIMEOUT_DAYS,
-                TimeUnit.DAYS
-        );
-
-        log.info("用户登录成功: account={}, id={}, groupRoleMap={}", account, user.getId(), groupRoleMap);
+        String sessionId = redisCacheManager.setSession(user.getUserId(), user.getIdentityType(), groupRoleMap);
+        log.info("用户登录成功: sessionId={}, account={}, userId={}, groupRoleMap={}", sessionId, account, user.getUserId(), groupRoleMap);
         return sessionId;
     }
 
     /**
      * 注销
      */
-    public void logout(String sessionId) {
+    public void logout(String sessionId, Long userId) {
         if (StrUtil.isBlank(sessionId)) {
             return;
         }
-        String redisKey = REDIS_SESSION_PREFIX + sessionId;
-        // 直接从 Redis 中物理删除该 Session
-        Boolean deleted = stringRedisTemplate.delete(redisKey);
-        if (deleted) {
-            log.info("用户主动注销成功，已清理 Redis 会话: sessionId={}", sessionId);
-        } else {
-            log.warn("用户注销时会话已不存在或已过期: sessionId={}", sessionId);
-        }
+        redisCacheManager.deleteSession(sessionId, userId);
+        log.info("用户注销成功: sessionId={}, userId={}", sessionId, userId);
     }
 }

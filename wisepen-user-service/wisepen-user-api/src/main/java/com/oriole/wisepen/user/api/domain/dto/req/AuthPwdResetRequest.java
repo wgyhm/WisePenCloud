@@ -1,24 +1,24 @@
-package com.oriole.wisepen.user.api.domain.dto;
+package com.oriole.wisepen.user.api.domain.dto.req;
 
 import com.oriole.wisepen.user.api.constant.UserRegexPatterns;
 import com.oriole.wisepen.user.api.constant.UserValidationMsg;
-import com.oriole.wisepen.user.api.validation.ValidUsername;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
-import jakarta.validation.constraints.Size;
 import lombok.Data;
-
 import java.io.Serializable;
 
+/**
+ * 重置密码执行请求体
+ *
+ * @author Oriole
+ */
 @Data
-public class RegisterRequest implements Serializable {
-    /** 用户名*/
-    @NotBlank(message = UserValidationMsg.USERNAME_EMPTY)
-    @ValidUsername
-    private String username;
+public class AuthPwdResetRequest implements Serializable {
 
-    /** 密码*/
     @NotBlank(message = UserValidationMsg.PASSWORD_EMPTY)
     @Pattern(regexp = UserRegexPatterns.PASSWORD_PATTERN, message = UserValidationMsg.PASSWORD_INVALID)
-    private String password;
+    private String newPassword; // 新密码
+
+    @NotBlank(message = UserValidationMsg.RESET_PWD_TOKEN_EMPTY)
+    private String token; // 重置Token
 }

@@ -37,7 +37,7 @@ public class SecurityAspect {
         CheckRole checkRole = getAnnotation(method, targetClass, CheckRole.class);
 
         // 执行登录态校验
-        String userId = SecurityContextHolder.getUserId();
+        Long userId = SecurityContextHolder.getUserId();
         if (userId == null) {
             throw new PermissionException(PermissionErrorCode.NOT_LOGIN);
         }

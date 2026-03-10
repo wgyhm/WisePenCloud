@@ -1,16 +1,23 @@
 package com.oriole.wisepen.user.service;
 
-import com.oriole.wisepen.user.api.domain.dto.RegisterRequest;
-import com.oriole.wisepen.user.api.domain.dto.ResetExecuteRequest;
-import com.oriole.wisepen.user.api.domain.dto.ResetRequest;
-import com.oriole.wisepen.user.api.domain.dto.UserInfoDTO;
-import com.oriole.wisepen.user.domain.entity.User;
+import com.oriole.wisepen.user.api.domain.base.UserDisplayBase;
+import com.oriole.wisepen.user.api.domain.dto.*;
+import com.oriole.wisepen.user.api.domain.dto.req.AuthPwdResetRequest;
+import com.oriole.wisepen.user.api.domain.dto.req.AuthPwdResetVerifyRequest;
+import com.oriole.wisepen.user.api.domain.dto.req.AuthRegisterRequest;
+import com.oriole.wisepen.user.domain.entity.UserEntity;
+
+import java.util.Map;
+import java.util.Set;
 
 public interface UserService {
-    User getUserCoreInfoByAccount(String account);
+    UserEntity getUserCoreInfoByAccount(String account);
     UserInfoDTO getUserInfoById(Long userId);
 
-    void register(RegisterRequest registerRequest);
-    void sendResetMail(ResetRequest resetRequest);
-    void resetPassword(ResetExecuteRequest resetExecuteRequest);
+    UserDisplayBase getUserDisplayInfoById(Long userId);
+    Map<Long, UserDisplayBase> getUserDisplayInfoByIds(Set<Long> userIds);
+
+    void register(AuthRegisterRequest req);
+    void sendResetMail(AuthPwdResetVerifyRequest req);
+    void resetPassword(AuthPwdResetRequest req);
 }

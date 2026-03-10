@@ -4,31 +4,36 @@ import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.date.DateUtil;
 import cn.hutool.core.util.IdUtil;
 import cn.hutool.crypto.digest.BCrypt;
+import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.oriole.wisepen.common.core.domain.enums.IdentityType;
 import com.oriole.wisepen.common.core.exception.ServiceException;
 import com.oriole.wisepen.system.api.domain.dto.MailSendDTO;
 import com.oriole.wisepen.system.api.feign.RemoteMailService;
-import com.oriole.wisepen.user.api.domain.dto.RegisterRequest;
-import com.oriole.wisepen.user.api.domain.dto.ResetExecuteRequest;
-import com.oriole.wisepen.user.api.domain.dto.ResetRequest;
+import com.oriole.wisepen.user.api.domain.base.UserDisplayBase;
+import com.oriole.wisepen.user.api.domain.dto.req.AuthRegisterRequest;
+import com.oriole.wisepen.user.api.domain.dto.req.AuthPwdResetRequest;
+import com.oriole.wisepen.user.api.domain.dto.req.AuthPwdResetVerifyRequest;
 import com.oriole.wisepen.user.api.domain.dto.UserInfoDTO;
 import com.oriole.wisepen.user.api.enums.Status;
-import com.oriole.wisepen.user.domain.entity.User;
-import com.oriole.wisepen.user.domain.entity.UserProfile;
+import com.oriole.wisepen.user.cache.RedisCacheManager;
+import com.oriole.wisepen.user.domain.entity.UserEntity;
+import com.oriole.wisepen.user.domain.entity.UserProfileEntity;
+import com.oriole.wisepen.user.domain.entity.UserTokenPoolEntity;
 import com.oriole.wisepen.user.exception.UserErrorCode;
+import com.oriole.wisepen.user.mapper.UserWalletsMapper;
 import com.oriole.wisepen.user.service.UserService;
 import com.oriole.wisepen.user.mapper.UserMapper;
 import com.oriole.wisepen.user.mapper.UserProfileMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
+
+import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -37,71 +42,92 @@ public class UserServiceImpl implements UserService {
 
     private final UserMapper userMapper;
     private final UserProfileMapper userProfileMapper;
-
-    @Autowired
-    StringRedisTemplate redisTemplate;
+    private final UserWalletsMapper userWalletsMapper;
+    private final RedisCacheManager redisCacheManager;
 
     private final TemplateEngine templateEngine;
-
     private final RemoteMailService remoteMailService;
 
     @Override
-    public User getUserCoreInfoByAccount(String account) {
-        return userMapper.selectOne(Wrappers.<User>lambdaQuery()
-                .and(w -> w.eq(User::getUsername, account).or().eq(User::getCampusNo, account))
+    public UserEntity getUserCoreInfoByAccount(String account) {
+        return userMapper.selectOne(Wrappers.<UserEntity>lambdaQuery()
+                .and(w -> w.eq(UserEntity::getUsername, account).or().eq(UserEntity::getCampusNo, account))
                 .last("LIMIT 1"));
     }
 
-    /**
-     * 注册
-     */
     @Override
-    @Transactional(rollbackFor = Exception.class)
-    public void register(RegisterRequest registerRequest) {
+    public UserDisplayBase getUserDisplayInfoById(Long userId) {
+        if (userId == null) {
+            throw new ServiceException(UserErrorCode.USERNAME_EXISTED);
+        }
+        UserEntity userEntity = userMapper.selectById(userId);
+        return BeanUtil.copyProperties(userEntity, UserDisplayBase.class);
+    }
+
+    @Override
+    public Map<Long, UserDisplayBase> getUserDisplayInfoByIds(Set<Long> userIds) {
+        if (CollectionUtils.isEmpty(userIds)) {
+            return Collections.emptyMap();
+        }
+        List<UserEntity> userList = userMapper.selectBatchIds(userIds);
+
+        if (CollectionUtils.isEmpty(userList)) {
+            return Collections.emptyMap();
+        }
+
+        return userList.stream().filter(Objects::nonNull).collect(Collectors.toMap(
+                UserEntity::getUserId,
+                user -> BeanUtil.copyProperties(user, UserDisplayBase.class),
+                (existing, replacement) -> existing
+        ));
+    }
+
+    @Override
+    public void register(AuthRegisterRequest req) {
         // 校验用户名是否存在
-        if (userMapper.selectCount(Wrappers.<User>lambdaQuery().eq(User::getUsername, registerRequest.getUsername())) > 0) {
+        if (userMapper.selectCount(Wrappers.<UserEntity>lambdaQuery().eq(UserEntity::getUsername, req.getUsername())) > 0) {
             throw new ServiceException(UserErrorCode.USERNAME_EXISTED);
         }
 
         // 新建未验证的学生用户
-        User user = User.builder()
-                .username(registerRequest.getUsername())
+        UserEntity user = UserEntity.builder()
+                .username(req.getUsername())
                 .identityType(IdentityType.STUDENT)
                 .status(Status.UNIDENTIFIED)
                 .build();
 
         // 加密用户密码
-        user.setPassword(BCrypt.hashpw(registerRequest.getPassword()));
+        user.setPassword(BCrypt.hashpw(req.getPassword()));
         userMapper.insert(user);
 
         // 新建档案
-        UserProfile userProfile = UserProfile.builder()
-                .userId(user.getId())
+        UserProfileEntity userProfile = UserProfileEntity.builder()
+                .userId(user.getUserId())
                 .university("复旦大学")
                 .college("复旦大学")
                 .build();
         userProfileMapper.insert(userProfile);
+
+        UserTokenPoolEntity userWallets = new UserTokenPoolEntity();
+        userWallets.setUserId(user.getUserId());
+        userWallets.setTokenLimit(0);
+        userWallets.setTokenUsed(0);
+        userWalletsMapper.insert(userWallets);
     }
 
-    /**
-     * 发送重置邮件
-     */
     @Override
-    public void sendResetMail(ResetRequest resetRequest) {
+    public void sendResetMail(AuthPwdResetVerifyRequest req) {
         // 查询学号对应用户
-        String campusNo = resetRequest.getCampusNo();
-        User user = userMapper.selectOne(Wrappers.<User>lambdaQuery().eq(User::getCampusNo, campusNo).last("LIMIT 1"));
+        String campusNo = req.getCampusNo();
+        UserEntity user = userMapper.selectOne(Wrappers.<UserEntity>lambdaQuery().eq(UserEntity::getCampusNo, campusNo).last("LIMIT 1"));
 
         if(user==null){
             log.warn("重置密码申请：学号 {} 不存在，流程静默终止", campusNo);
             return; // 处于安全考虑，不存在也不报错，防止撞库
         }
 
-        String token = IdUtil.fastSimpleUUID();
-
-        String redisKey = "auth:reset:token:" + token;
-        redisTemplate.opsForValue().set(redisKey, String.valueOf(user.getId()), 15, TimeUnit.MINUTES);
-
+        // uid存入Redis
+        String token = redisCacheManager.setPwdResetToken(user.getUserId());
         // 构建重置链接
         String resetLink = "https://wisepen.fudan.edu.cn/reset-pwd?token=" + token;
 
@@ -132,14 +158,14 @@ public class UserServiceImpl implements UserService {
     @Override
     public UserInfoDTO getUserInfoById(Long userId) {
         // 查核心账号
-        User user = userMapper.selectById(userId);
+        UserEntity user = userMapper.selectById(userId);
 
         if (user == null) {
             return null;
         }
 
         // 查档案详情
-        UserProfile profile = userProfileMapper.selectById(user.getId());
+        UserProfileEntity profile = userProfileMapper.selectById(user.getUserId());
 
         // 组装 DTO
         UserInfoDTO dto = new UserInfoDTO();
@@ -152,31 +178,25 @@ public class UserServiceImpl implements UserService {
         return dto;
     }
 
-    /**
-     * 执行重置密码（通过token）
-     */
+    // 重置密码
     @Override
-    public void resetPassword(ResetExecuteRequest resetExecuteRequest){
-        String redisKey = "auth:reset:token:" + resetExecuteRequest.getToken();
-        String userId = redisTemplate.opsForValue().get(redisKey);
-
+    public void resetPassword(AuthPwdResetRequest req){
+        Long userId = redisCacheManager.getPwdResetUser(req.getToken());
         if(userId == null){
             throw new ServiceException(UserErrorCode.PASSWORD_RESET_FAILED);
         }
 
-        updatePasswordByUserId(userId, resetExecuteRequest.getNewPassword());
-        // 成功后立即清理 Token
-        redisTemplate.delete(redisKey);
+        updatePasswordByUserId(userId, req.getNewPassword());
         log.info("用户 {} 密码重置成功", userId);
     }
 
-    boolean updatePasswordByUserId(String userId, String newPassword) {
-        User user = User.builder()
-                .id(Long.valueOf(userId))
+    // 修改密码
+    public boolean updatePasswordByUserId(Long userId, String newPassword) {
+        UserEntity user = UserEntity.builder()
+                .userId(userId)
                 .password(BCrypt.hashpw(newPassword))
                 .updateTime(java.time.LocalDateTime.now())
                 .build();
-        int result = userMapper.updateById(user);
-        return result > 0;
+        return userMapper.updateById(user) > 0;
     }
 }

@@ -25,7 +25,7 @@ public class UserController {
     @GetMapping("/info")
     @Log(title = "用户信息获取", businessType= BusinessType.SELECT, isSaveResponseData=false)
     public R<UserInfoDTO> getInfo() {
-        long userId = Long.parseLong(SecurityContextHolder.getUserId());
+        Long userId = SecurityContextHolder.getUserId();
         UserInfoDTO userInfo = userService.getUserInfoById(userId);
         if (userInfo != null) {
             // 返回给前端前把密码抹除
