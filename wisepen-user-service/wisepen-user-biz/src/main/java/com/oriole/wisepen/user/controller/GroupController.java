@@ -57,7 +57,16 @@ public class GroupController {
 
 	@PostMapping("/changeGroup")
 	public R<Void> updateGroup(@RequestBody @Valid GroupUpdateRequest req) {
-		SecurityContextHolder.assertGroupRole(req.getGroupId(), GroupRoleType.OWNER, GroupRoleType.ADMIN);
+		SecurityContextHolder.assertGroupRole(req.getGroupId(), GroupRoleType.OWNER);
+
+		IdentityType userIdentityType= SecurityContextHolder.getIdentityType();
+		if (req.getGroupType() == GroupType.ADVANCED_GROUP && userIdentityType == IdentityType.STUDENT) {
+			throw new PermissionException(PermissionErrorCode.IDENTITY_UNAUTHORIZED);
+		}
+
+		if (req.getGroupType()==GroupType.MARKET_GROUP && userIdentityType != IdentityType.ADMIN) {
+			throw new PermissionException(PermissionErrorCode.IDENTITY_UNAUTHORIZED);
+		}
 		groupService.updateGroup(req);
 		return R.ok();
 	}
