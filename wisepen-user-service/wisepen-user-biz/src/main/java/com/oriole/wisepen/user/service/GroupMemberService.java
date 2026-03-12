@@ -46,9 +46,12 @@ public interface GroupMemberService {
 	// 移除全部组成员
 	void removeAllGroupMembers(Long groupId);
 
+	// 获得一个小组的 Token 数据
 	GroupMemberGetTokenResponse getGroupToken(Long userId, Long groupId);
 
+	// 批量获得当前用户小组的 Token 信息
 	PageResult<GroupMemberGetGroupTokenResponse> getAllGroupToken(Long userId,Integer page,Integer size);
 
+	// 计算 Token 流水
 	void calculateToken(TokenCalculateMessage message);
 }
