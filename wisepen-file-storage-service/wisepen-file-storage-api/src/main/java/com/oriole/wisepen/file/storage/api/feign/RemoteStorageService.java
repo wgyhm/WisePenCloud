@@ -15,7 +15,7 @@ import java.util.List;
  * 内部存储服务 Feign 客户端
  * 提供给其他业务微服务调用
  */
-@FeignClient(contextId = "remoteStorageService", value = "wisepen-file-storage", path = "/internal/storage")
+@FeignClient(contextId = "remoteStorageService", value = "wisepen-file-storage-service", path = "/internal/storage")
 public interface RemoteStorageService {
 
     /**

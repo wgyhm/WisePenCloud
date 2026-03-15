@@ -3,8 +3,10 @@ package com.oriole.wisepen.file.storage.service.impl;
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.bean.copier.CopyOptions;
 import cn.hutool.core.io.FileUtil;
+import cn.hutool.core.util.CharsetUtil;
 import cn.hutool.core.util.IdUtil;
 import cn.hutool.core.util.StrUtil;
+import cn.hutool.http.HttpUtil;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -37,6 +39,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -182,19 +185,11 @@ public class StorageServiceImpl implements IStorageService {
 
     @Override
     public void handleUploadCallback(HttpServletRequest request, String rawBody) {
-        String objectKey;
-        String md5;
-        Long size;
-
-        try {
-            JsonNode jsonNode = objectMapper.readTree(rawBody);
-            objectKey = jsonNode.path("objectKey").asText();
-            md5 = jsonNode.path("md5").asText();
-            size = jsonNode.path("size").asLong();
-        } catch (Exception e) {
-            log.error("OSS 回调 JSON 解析失败, rawBody: {}", rawBody, e);
-            throw new ServiceException(StorageErrorCode.CALLBACK_SIGNATURE_INVALID);
-        }
+        // 解析参数
+        Map<String, String> paramMap = HttpUtil.decodeParamMap(rawBody, CharsetUtil.CHARSET_UTF_8);
+        String objectKey = paramMap.get("objectKey");
+        String md5 = paramMap.get("md5");
+        Long size = paramMap.containsKey("size") ? Long.parseLong(paramMap.get("size")) : null;
 
         StorageRecordEntity record = storageRecordMapper.selectOne(
                 Wrappers.<StorageRecordEntity>lambdaQuery()

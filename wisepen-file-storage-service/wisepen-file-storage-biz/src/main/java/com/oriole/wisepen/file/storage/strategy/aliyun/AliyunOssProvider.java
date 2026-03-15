@@ -29,6 +29,7 @@ import org.springframework.web.multipart.MultipartFile;
 import jakarta.servlet.http.HttpServletRequest;
 import java.io.InputStream;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.security.KeyFactory;
 import java.security.PublicKey;
 import java.security.Signature;
@@ -71,26 +72,14 @@ public class AliyunOssProvider implements StorageProvider {
         String callbackUrl = apiDomain.replaceAll("/+$", "") + "/external/storage/callback/upload";
 
         try {
-            // 1. 构建内层 CallbackBody
-            Map<String, String> innerBodyMap = Map.of(
-                    "objectKey", "${object}",
-                    "size", "${size}",
-                    "md5", "${etag}"
-            );
-            // 🚀 彻底换成 Jackson 序列化
-            String callbackBody = OBJECT_MAPPER.writeValueAsString(innerBodyMap);
-
-            // 2. 构建外层 OSS 回调规则
+            String callbackBody = "objectKey=${object}&size=${size}&md5=${etag}";
             Map<String, String> outerPolicyMap = Map.of(
                     "callbackUrl", callbackUrl,
                     "callbackBody", callbackBody,
-                    "callbackBodyType", "application/json"
+                    "callbackBodyType", "application/x-www-form-urlencoded"
             );
-            // Jackson 序列化
             String callbackJson = OBJECT_MAPPER.writeValueAsString(outerPolicyMap);
-
-            // 稳健地 Base64 编码
-            String callbackBase64 = BinaryUtil.toBase64String(callbackJson.getBytes());
+            String callbackBase64 = BinaryUtil.toBase64String(callbackJson.getBytes(StandardCharsets.UTF_8));
 
             // 生成 PUT 方法的预签名 URL，供前端直传
             GeneratePresignedUrlRequest request =
