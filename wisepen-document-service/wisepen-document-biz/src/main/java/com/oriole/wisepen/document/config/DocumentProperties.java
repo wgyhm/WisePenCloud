@@ -28,6 +28,22 @@ public class DocumentProperties {
     private String watermarkSecretKey = "d2lzZXBlbmRlZmF1bHQ="; // base64("wisependefault") - 14 chars, padded to 16 in codec
 
     /**
+     * Stage 3 底部免责声明所用 CJK 常规字体文件路径（TTF/OTF，需包含所有声明汉字）。
+     * PDFBox 将对实际使用的字符自动 subset 嵌入，通常仅增加约 60–80 KB 体积。
+     * 若路径不存在或为空，中文声明行将静默跳过，仅保留英文声明。
+     * 推荐字体：NotoSansSC-Regular.otf（开源，可从 Google Fonts 获取）。
+     * e.g. /usr/share/fonts/opentype/noto/NotoSansSC-Regular.otf
+     */
+    private String cjkRegularFontPath = "";
+
+    /**
+     * Stage 3 底部免责声明所用 CJK 粗体字体文件路径（TTF/OTF）。
+     * 用于渲染加粗红色警告行；若为空则回退到 cjkRegularFontPath。
+     * e.g. /usr/share/fonts/opentype/noto/NotoSansSC-Bold.otf
+     */
+    private String cjkBoldFontPath = "";
+
+    /**
      * 定时任务检测 UPLOADING 文档的执行间隔（毫秒），默认 5 分钟。
      */
     private long staleCheckDelayMs = 300_000L;

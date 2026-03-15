@@ -27,9 +27,13 @@ import org.apache.pdfbox.cos.COSObject;
 import org.apache.pdfbox.cos.COSStream;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
+import org.apache.pdfbox.pdmodel.PDPageContentStream;
 import org.apache.pdfbox.pdmodel.PDResources;
 import org.apache.pdfbox.pdmodel.common.PDRectangle;
 import org.apache.pdfbox.pdmodel.common.PDStream;
+import org.apache.pdfbox.pdmodel.font.PDFont;
+import org.apache.pdfbox.pdmodel.font.PDType0Font;
+import org.apache.pdfbox.pdmodel.font.PDType1Font;
 import org.apache.pdfbox.pdmodel.graphics.form.PDFormXObject;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
@@ -268,23 +272,26 @@ public class DocumentParseConsumer {
     }
 
     /**
-     * 在 PDF 中预埋空的 Form XObject（/WisepenWM），并在每页末尾追加调用指令
-     * {@code q /WisepenWM Do Q}。
-     * <p>
-     * 预埋后的 hooked PDF 是实际上传至 OSS 的文件。预览时增量更新附录覆盖
-     * /WisepenWM 的对象定义，注入真实水印内容，无需修改任何 Page Dict。
+     * 在 PDF 中预埋空的 Form XObject（/WisepenWM），并在每页末尾依次追加：
+     * <ol>
+     *   <li>{@code q /WisepenWM Do Q}：动态水印占位调用（预览时由增量附录覆盖为真实水印）</li>
+     *   <li>底部法律免责声明：双语（中文在上、英文在下），烧录进 PDF 永久可见</li>
+     * </ol>
      *
-     * @param source     干净的 PDF 源文件（经过 Office 转换或直接来自上传）
-     * @param hookedPdf  输出路径，写入预埋后的 PDF
+     * @param source    干净的 PDF 源文件（经过 Office 转换或直接来自上传）
+     * @param hookedPdf 输出路径，写入预埋后的 PDF
      */
     private void embedWatermarkPlaceholder(File source, File hookedPdf) throws IOException {
         COSName wmName = COSName.getPDFName("WisepenWM");
         try (PDDocument doc = PDDocument.load(source)) {
+            // 加载 CJK 字体（可能为 null，为空时中文行静默跳过）
+            PDFont cjkRegular = loadCjkFont(doc, false);
+            PDFont cjkBold = loadCjkFont(doc, true);
+
             // 创建空 Form XObject（内容仅 "q Q"，作为占位符）
             PDFormXObject emptyForm = new PDFormXObject(doc);
             PDPage firstPage = doc.getPage(0);
             emptyForm.setBBox(firstPage.getMediaBox());
-            // PDFormXObject 底层是 COSStream，通过 createOutputStream() 写入内容
             try (OutputStream cs = ((COSStream) emptyForm.getCOSObject()).createOutputStream()) {
                 cs.write("q Q\n".getBytes(StandardCharsets.US_ASCII));
             }
@@ -298,12 +305,11 @@ public class DocumentParseConsumer {
                 }
                 resources.put(wmName, emptyForm);
 
-                // 以新 Content Stream 追加 /WisepenWM Do 调用
+                // 追加 /WisepenWM Do 调用流
                 PDStream callStream = new PDStream(doc);
                 try (OutputStream callCs = callStream.createOutputStream()) {
                     callCs.write("q /WisepenWM Do Q\n".getBytes(StandardCharsets.US_ASCII));
                 }
-                // 将新 stream 追加到 Contents 数组（兼容原始 Contents 为单 ref 或已是 array）
                 COSBase existing = page.getCOSObject().getDictionaryObject(COSName.CONTENTS);
                 COSArray contents;
                 if (existing instanceof COSArray existingArr) {
@@ -316,11 +322,128 @@ public class DocumentParseConsumer {
                 }
                 contents.add(callStream.getCOSObject());
                 page.getCOSObject().setItem(COSName.CONTENTS, contents);
+
+                // 追加底部法律免责声明
+                appendDisclaimer(doc, page, cjkRegular, cjkBold);
             }
 
             doc.save(hookedPdf);
         }
         log.debug("水印占位符预埋完成: source={}, hooked={}", source.getName(), hookedPdf.getName());
+    }
+
+    /**
+     * 在页面底部追加双语法律免责声明（烧录，永久可见）。
+     *
+     * <p>布局（从上到下）：
+     * <pre>
+     *   [CJK Bold 红色 6.5pt] 仅供学术交流与课堂教学使用
+     *   [CJK Regular 灰色 5.5pt] 严禁出版或公开发布，违者须承担全部侵权法律后果。
+     *   [CJK Regular 灰色 5.5pt] 文档已启用隐形溯源技术，必要时将依法向著作权人或法院披露泄露者信息。
+     *   [Helvetica-Bold 红色 6.5pt] Strictly for Academic and Instructional Use.
+     *   [Helvetica 灰色 5.5pt] Publication or online distribution is prohibited...
+     *   [Helvetica 灰色 5.5pt] Embedded tracking mechanisms are active...
+     * </pre>
+     * 总高度约 50pt，从页面底边 5pt 起始。若 CJK 字体不可用，中文三行静默跳过。
+     *
+     * @param cjkRegular CJK 常规字体（null 则跳过中文行）
+     * @param cjkBold    CJK 粗体字体（null 时回退到 cjkRegular，仍为 null 则跳过中文行）
+     */
+    private void appendDisclaimer(PDDocument doc, PDPage page,
+                                  PDFont cjkRegular, PDFont cjkBold) throws IOException {
+        PDRectangle box = page.getMediaBox();
+        float baseY = box.getLowerLeftY() + 5f;
+        float marginX = 10f;
+        float lineH = 8f;
+
+        // y 坐标从底部向上依次排列（英文在下，中文在上）
+        float yEn3 = baseY;
+        float yEn2 = baseY + lineH;
+        float yEn1 = baseY + lineH * 2f;
+        float yCn3 = baseY + lineH * 3f;
+        float yCn2 = baseY + lineH * 4f;
+        float yCn1 = baseY + lineH * 5f;
+
+        // resetContext=true：PDFBox 自动以 q/Q 包裹，隔离图形状态
+        try (PDPageContentStream cs = new PDPageContentStream(
+                doc, page, PDPageContentStream.AppendMode.APPEND, true, true)) {
+
+            // ── 英文第 3 行（灰色） ──────────────────────────────────────────
+            drawText(cs, PDType1Font.HELVETICA, 5.5f,
+                    new java.awt.Color(50, 50, 50), marginX, yEn3,
+                    "Embedded tracking mechanisms are active; violator information will be "
+                            + "disclosed to copyright owners or courts upon lawful request.");
+
+            // ── 英文第 2 行（灰色） ──────────────────────────────────────────
+            drawText(cs, PDType1Font.HELVETICA, 5.5f,
+                    new java.awt.Color(50, 50, 50), marginX, yEn2,
+                    "Publication or online distribution is prohibited. "
+                            + "Violators assume full legal liability for any infringement.");
+
+            // ── 英文第 1 行（加粗红色） ──────────────────────────────────────
+            drawText(cs, PDType1Font.HELVETICA_BOLD, 6.5f,
+                    new java.awt.Color(204, 0, 0), marginX, yEn1,
+                    "Strictly for Academic and Instructional Use.");
+
+            // ── 中文三行（需要 CJK 字体） ────────────────────────────────────
+            if (cjkRegular != null) {
+                PDFont boldFont = (cjkBold != null) ? cjkBold : cjkRegular;
+
+                drawText(cs, cjkRegular, 5.5f,
+                        new java.awt.Color(50, 50, 50), marginX, yCn3,
+                        "文档已启用隐形溯源技术，必要时将依法向著作权人或法院披露泄露者信息。");
+
+                drawText(cs, cjkRegular, 5.5f,
+                        new java.awt.Color(50, 50, 50), marginX, yCn2,
+                        "严禁出版或公开发布，违者须承担全部侵权法律后果。");
+
+                drawText(cs, boldFont, 6.5f,
+                        new java.awt.Color(204, 0, 0), marginX, yCn1,
+                        "仅供学术交流与课堂教学使用");
+            }
+        }
+    }
+
+    /** 在指定坐标绘制单行文字，独立管理图形状态以避免颜色/字体污染。 */
+    private static void drawText(PDPageContentStream cs,
+                                  PDFont font, float fontSize,
+                                  java.awt.Color color,
+                                  float x, float y,
+                                  String text) throws IOException {
+        cs.saveGraphicsState();
+        cs.setNonStrokingColor(color);
+        cs.beginText();
+        cs.setFont(font, fontSize);
+        cs.newLineAtOffset(x, y);
+        cs.showText(text);
+        cs.endText();
+        cs.restoreGraphicsState();
+    }
+
+    /**
+     * 从配置路径加载 CJK 字体，失败时静默返回 null。
+     *
+     * @param bold 为 true 则读取 {@code cjkBoldFontPath}，否则读取 {@code cjkRegularFontPath}
+     * @return 加载成功的 PDFont，或 null（路径未配置 / 文件不存在 / 加载失败）
+     */
+    private PDFont loadCjkFont(PDDocument doc, boolean bold) {
+        String path = bold
+                ? documentProperties.getCjkBoldFontPath()
+                : documentProperties.getCjkRegularFontPath();
+        if (path == null || path.isBlank()) {
+            return null;
+        }
+        File fontFile = new File(path);
+        if (!fontFile.exists()) {
+            log.warn("CJK 字体文件不存在，中文免责声明将跳过: path={}", path);
+            return null;
+        }
+        try (java.io.FileInputStream fis = new java.io.FileInputStream(fontFile)) {
+            return PDType0Font.load(doc, fis, true);
+        } catch (IOException e) {
+            log.warn("CJK 字体加载失败，中文免责声明将跳过: path={}, error={}", path, e.getMessage());
+            return null;
+        }
     }
 
     /**
