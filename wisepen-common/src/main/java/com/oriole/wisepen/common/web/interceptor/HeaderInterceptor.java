@@ -13,8 +13,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.web.util.WebUtils;
 
-import java.nio.file.AccessDeniedException;
-
 public class HeaderInterceptor implements HandlerInterceptor {
 
     private final String fromSource;
@@ -25,6 +23,10 @@ public class HeaderInterceptor implements HandlerInterceptor {
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
+        // 直接放行浏览器的 CORS 预检请求
+        if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
+            return true;
+        }
 
         // 在这里校验一下 "X-From-Source"，防止外网绕过网关直接攻击微服务端口
         if (!fromSource.equals(request.getHeader(SecurityConstants.HEADER_FROM_SOURCE))) {
