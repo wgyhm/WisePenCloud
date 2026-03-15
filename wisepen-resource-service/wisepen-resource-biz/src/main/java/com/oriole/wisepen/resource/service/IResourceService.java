@@ -5,6 +5,9 @@ import com.oriole.wisepen.common.core.domain.enums.GroupRoleType;
 import com.oriole.wisepen.common.core.domain.enums.list.QueryLogicEnum;
 import com.oriole.wisepen.common.core.domain.enums.list.SortDirectionEnum;
 import com.oriole.wisepen.resource.domain.dto.*;
+import com.oriole.wisepen.resource.domain.dto.req.ResourceRenameRequest;
+import com.oriole.wisepen.resource.domain.dto.req.ResourceUpdateTagsRequest;
+import com.oriole.wisepen.resource.domain.dto.res.ResourceItemResponse;
 import com.oriole.wisepen.resource.enums.ResourceSortByEnum;
 
 import java.util.List;
@@ -34,11 +37,11 @@ public interface IResourceService {
 
     // ToService：增加、移除、更新资源；检查特定资源的权限
 
-    String createResourceItem(ResourceCreateDTO dto);
+    String createResourceItem(ResourceCreateReqDTO dto);
 
     void removeResourceItem(String resourceId);
 
-    void updateResourceAttributes(ResourceUpdateDTO dto);
+    void updateResourceAttributes(ResourceUpdateReqDTO dto);
 
-    Boolean checkPermission(ResourceCheckPermissionDTO dto);
+    ResourceCheckPermissionResDTO checkPermission(ResourceCheckPermissionReqDTO dto);
 }

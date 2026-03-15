@@ -11,8 +11,12 @@ import com.oriole.wisepen.resource.constant.ResourceConstants;
 import com.oriole.wisepen.resource.domain.GroupAcl;
 import com.oriole.wisepen.resource.domain.GroupTagBind;
 import com.oriole.wisepen.resource.domain.dto.*;
+import com.oriole.wisepen.resource.domain.dto.req.ResourceRenameRequest;
+import com.oriole.wisepen.resource.domain.dto.req.ResourceUpdateTagsRequest;
+import com.oriole.wisepen.resource.domain.dto.res.ResourceItemResponse;
 import com.oriole.wisepen.resource.domain.entity.ResourceItemEntity;
 import com.oriole.wisepen.resource.domain.entity.TagEntity;
+import com.oriole.wisepen.resource.enums.ResPermissionLevelEnum;
 import com.oriole.wisepen.resource.enums.ResourceSortByEnum;
 import com.oriole.wisepen.resource.enums.VisibilityModeEnum;
 import com.oriole.wisepen.resource.exception.ResPermissionErrorCode;
@@ -198,7 +202,7 @@ public class ResourceServiceImpl implements IResourceService {
     }
 
     @Override
-    public String createResourceItem(ResourceCreateDTO dto) {
+    public String createResourceItem(ResourceCreateReqDTO dto) {
         ResourceItemEntity entity = new ResourceItemEntity();
         BeanUtil.copyProperties(dto, entity);
 
@@ -219,7 +223,7 @@ public class ResourceServiceImpl implements IResourceService {
     }
 
     @Override
-    public void updateResourceAttributes(ResourceUpdateDTO dto) {
+    public void updateResourceAttributes(ResourceUpdateReqDTO dto) {
         resourceItemRepository.findById(dto.getResourceId()).ifPresent(entity -> {
             BeanUtil.copyProperties(dto, entity, CopyOptions.create().ignoreNullValue());
             entity.setUpdateTime(new Date());
@@ -325,24 +329,28 @@ public class ResourceServiceImpl implements IResourceService {
     }
 
     @Override
-    public Boolean checkPermission(ResourceCheckPermissionDTO dto) {
+    public ResourceCheckPermissionResDTO checkPermission(ResourceCheckPermissionReqDTO dto) {
         // 如果资源不存在（或已进入回收站），直接拒绝
         ResourceItemEntity entity = resourceItemRepository.findById(dto.getResourceId()).orElse(null);
         if (entity == null) {
-            return false;
+            return new ResourceCheckPermissionResDTO(ResPermissionLevelEnum.NONE);
         }
         // 如果是资源所有者，则直接有权限
         if (dto.getUserId().equals(entity.getOwnerId())) {
-            return true;
+            return new ResourceCheckPermissionResDTO(ResPermissionLevelEnum.OWNER);
         }
         // 用户不在任何组，直接拒绝
         if (dto.getGroupRoles() == null || dto.getGroupRoles().isEmpty()) {
-            return false;
+            return new ResourceCheckPermissionResDTO(ResPermissionLevelEnum.NONE);
         }
         // 资源不在任何组，直接拒绝
         if (entity.getGroupBinds() == null || entity.getGroupBinds().isEmpty()) {
-            return false;
+            return new ResourceCheckPermissionResDTO(ResPermissionLevelEnum.NONE);
         }
+
+        ResPermissionLevelEnum maxPermission = ResPermissionLevelEnum.NONE;
+        String finalSource = null;
+
         for (GroupTagBind groupBind : entity.getGroupBinds()) {
             Long groupId = Long.valueOf(groupBind.getGroupId());
             if (!dto.getGroupRoles().containsKey(groupId)) { // 用户不在该组，跳过
@@ -350,32 +358,39 @@ public class ResourceServiceImpl implements IResourceService {
             }
             GroupRoleType userRoleInThisGroup = dto.getGroupRoles().get(groupId); // 组管理或所有者直接有权限
             if (userRoleInThisGroup == GroupRoleType.ADMIN || userRoleInThisGroup == GroupRoleType.OWNER) {
-                return true;
-            }
-            VisibilityModeEnum mode = VisibilityModeEnum.ALL; // 默认退化为全员可见
-            List<String> specifiedUsers = Collections.emptyList();
+                return new ResourceCheckPermissionResDTO(ResPermissionLevelEnum.GROUP_ADMIN, groupBind.getGroupId());
+            } // 提前结束遍历
 
-            // 同组认首标 (取列表里的第一个 Tag)
-            String primaryTagId = groupBind.getTagIds().getFirst();
-            TagEntity primaryTag = tagRepository.findById(primaryTagId).orElse(null); // 查 Tag 节点
-            // 向上溯源找有效权限配置
-            TagEntity effectiveTag = findEffectiveTagWithPermission(primaryTag);
-            if (effectiveTag != null) {
-                mode = effectiveTag.getVisibilityMode();
-                specifiedUsers = effectiveTag.getSpecifiedUsers() != null ? effectiveTag.getSpecifiedUsers() : Collections.emptyList();
-            }
+            // 如果还没拿到更高权限，才需要去校验复杂的 Tag 权限
+            if (maxPermission.getLevel() < ResPermissionLevelEnum.GROUP_MEMBER.getLevel()) {
+                VisibilityModeEnum mode = VisibilityModeEnum.ALL; // 默认退化为全员可见
+                List<String> specifiedUsers = Collections.emptyList();
 
-            if (mode == VisibilityModeEnum.ALL) {
-                return true;
-            } else if (mode == VisibilityModeEnum.WHITELIST && specifiedUsers.contains(dto.getUserId())) {
-                return true;
-            } else if (mode == VisibilityModeEnum.BLACKLIST && !specifiedUsers.contains(dto.getUserId())) {
-                return true;
+                // 同组认首标 (取列表里的第一个 Tag)
+                String primaryTagId = groupBind.getTagIds().getFirst();
+                TagEntity primaryTag = tagRepository.findById(primaryTagId).orElse(null); // 查 Tag 节点
+                // 向上溯源找有效权限配置
+                TagEntity effectiveTag = findEffectiveTagWithPermission(primaryTag);
+                if (effectiveTag != null) {
+                    mode = effectiveTag.getVisibilityMode();
+                    specifiedUsers = effectiveTag.getSpecifiedUsers() != null ? effectiveTag.getSpecifiedUsers() : Collections.emptyList();
+                }
+
+                // 判断是否有当前组的阅读权限
+                boolean hasReadAuth = (mode == VisibilityModeEnum.ALL ||
+                        (mode == VisibilityModeEnum.WHITELIST && specifiedUsers.contains(dto.getUserId())) ||
+                        (mode == VisibilityModeEnum.BLACKLIST && !specifiedUsers.contains(dto.getUserId())));
+
+                if (hasReadAuth) {
+                    // 记录下 Member 权限，但不 return，继续看后面的组会不会让他变成 Admin
+                    maxPermission = ResPermissionLevelEnum.GROUP_MEMBER;
+                    finalSource = groupBind.getGroupId();
+                }
             }
         }
 
-        // 遍历了用户所在的所有组，都没有拿到权限，最终拦截
-        return false;
+        // 循环结束，返回找到的最高权限（可能是 GROUP_MEMBER，也可能是 NONE）
+        return new ResourceCheckPermissionResDTO(maxPermission, finalSource);
     }
 
     private TagEntity findEffectiveTagWithPermission(TagEntity node) {

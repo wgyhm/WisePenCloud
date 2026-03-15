@@ -1,6 +1,10 @@
 package com.oriole.wisepen.resource.service;
 
-import com.oriole.wisepen.resource.domain.dto.*;
+import com.oriole.wisepen.resource.domain.dto.req.TagCreateRequest;
+import com.oriole.wisepen.resource.domain.dto.req.TagDeleteRequest;
+import com.oriole.wisepen.resource.domain.dto.req.TagMoveRequest;
+import com.oriole.wisepen.resource.domain.dto.req.TagUpdateRequest;
+import com.oriole.wisepen.resource.domain.dto.res.TagTreeResponse;
 
 import java.util.List;
 

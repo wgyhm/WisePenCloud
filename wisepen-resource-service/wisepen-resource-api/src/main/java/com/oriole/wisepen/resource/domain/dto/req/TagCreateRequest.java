@@ -1,4 +1,4 @@
-package com.oriole.wisepen.resource.domain.dto;
+package com.oriole.wisepen.resource.domain.dto.req;
 
 import com.oriole.wisepen.resource.constant.ResourceValidationMsg;
 import com.oriole.wisepen.resource.domain.base.TagSpaceBase;

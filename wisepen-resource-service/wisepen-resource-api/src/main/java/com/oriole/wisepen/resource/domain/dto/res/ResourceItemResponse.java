@@ -1,10 +1,9 @@
-package com.oriole.wisepen.resource.domain.dto;
+package com.oriole.wisepen.resource.domain.dto.res;
 
 import com.oriole.wisepen.resource.domain.base.ResourceItemInfoBase;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
-import java.util.List;
 import java.util.Map;
 
 @EqualsAndHashCode(callSuper = true)

@@ -8,7 +8,7 @@ import lombok.Data;
 import java.util.Map;
 
 @Data
-public class ResourceCheckPermissionDTO {
+public class ResourceCheckPermissionReqDTO {
     @NotBlank(message = ResourceValidationMsg.RESOURCE_ID_NOT_BLANK)
     private String resourceId;
     @NotBlank(message = ResourceValidationMsg.RESOURCE_TYPE_NOT_BLANK)

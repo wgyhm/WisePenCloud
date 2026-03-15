@@ -1,4 +1,4 @@
-package com.oriole.wisepen.resource.domain.dto;
+package com.oriole.wisepen.resource.domain.dto.res;
 
 import com.oriole.wisepen.resource.domain.base.TagInfoBase;
 import lombok.Data;

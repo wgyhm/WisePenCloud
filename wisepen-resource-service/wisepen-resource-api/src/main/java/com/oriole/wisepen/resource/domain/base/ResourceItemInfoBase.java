@@ -1,8 +1,14 @@
 package com.oriole.wisepen.resource.domain.base;
 
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
 
 @Data
+@SuperBuilder
+@NoArgsConstructor
+@AllArgsConstructor
 public class ResourceItemInfoBase {
     private String resourceName;      // 资源名称/标题
     private String resourceType;      // 资源类型 (NOTE, DOC, PDF)

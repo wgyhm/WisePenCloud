@@ -2,12 +2,16 @@ package com.oriole.wisepen.resource.domain.dto;
 
 import com.oriole.wisepen.resource.constant.ResourceValidationMsg;
 import jakarta.validation.constraints.NotBlank;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
-
-import java.util.List;
+import lombok.NoArgsConstructor;
 
 @Data
-public class ResourceCreateDTO {
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class ResourceCreateReqDTO {
     @NotBlank(message = ResourceValidationMsg.RESOURCE_NAME_NOT_BLANK)
     private String resourceName;
     @NotBlank(message = ResourceValidationMsg.RESOURCE_TYPE_NOT_BLANK)

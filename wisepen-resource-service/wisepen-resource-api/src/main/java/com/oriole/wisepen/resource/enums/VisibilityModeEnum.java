@@ -12,14 +12,12 @@ import lombok.Getter;
 @AllArgsConstructor
 public enum VisibilityModeEnum {
 
-    ALL(0, "ALL"),
-    ONLY_ADMIN(1, "ONLY_ADMIN"),
-    WHITELIST(2, "WHITELIST"),
-    BLACKLIST(3, "BLACKLIST");
+    ALL(0),
+    ONLY_ADMIN(1),
+    WHITELIST(2),
+    BLACKLIST(3);
 
     @EnumValue
     @JsonValue
     private final int code;
-
-    private final String desc;
 }

@@ -1,9 +1,10 @@
 package com.oriole.wisepen.resource.controller;
 
 import com.oriole.wisepen.common.core.domain.R;
-import com.oriole.wisepen.resource.domain.dto.ResourceCheckPermissionDTO;
-import com.oriole.wisepen.resource.domain.dto.ResourceCreateDTO;
-import com.oriole.wisepen.resource.domain.dto.ResourceUpdateDTO;
+import com.oriole.wisepen.resource.domain.dto.ResourceCheckPermissionReqDTO;
+import com.oriole.wisepen.resource.domain.dto.ResourceCheckPermissionResDTO;
+import com.oriole.wisepen.resource.domain.dto.ResourceCreateReqDTO;
+import com.oriole.wisepen.resource.domain.dto.ResourceUpdateReqDTO;
 import com.oriole.wisepen.resource.feign.RemoteResourceService;
 import com.oriole.wisepen.resource.service.IResourceService;
 import lombok.RequiredArgsConstructor;
@@ -19,7 +20,7 @@ public class InternalResourceItemController implements RemoteResourceService {
 
     // 注册/新增资源摘要
     @PostMapping("/addRes")
-    public R<String> createResource(@Validated @RequestBody ResourceCreateDTO dto) {
+    public R<String> createResource(@Validated @RequestBody ResourceCreateReqDTO dto) {
         String resourceId = resourceService.createResourceItem(dto);
         return R.ok(resourceId);
     }
@@ -34,15 +35,15 @@ public class InternalResourceItemController implements RemoteResourceService {
     // 同步修改资源属性
 
     @PostMapping("/changeResAttr")
-    public R<Void> updateAttributes(@Validated @RequestBody ResourceUpdateDTO dto) {
+    public R<Void> updateAttributes(@Validated @RequestBody ResourceUpdateReqDTO dto) {
         resourceService.updateResourceAttributes(dto);
         return R.ok();
     }
 
     // 内部鉴权接口，供下游微服务在执行敏感操作（如：导出PDF、分享链接）前进行硬核鉴权
     @PostMapping("/checkResPermission")
-    public R<Boolean> checkResPermission(@Validated @RequestBody ResourceCheckPermissionDTO dto) {
-        Boolean hasPermission = resourceService.checkPermission(dto);
+    public R<ResourceCheckPermissionResDTO> checkResPermission(@Validated @RequestBody ResourceCheckPermissionReqDTO dto) {
+        ResourceCheckPermissionResDTO hasPermission = resourceService.checkPermission(dto);
         return R.ok(hasPermission);
     }
 
