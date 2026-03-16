@@ -20,4 +20,8 @@ public interface UserService {
     void register(AuthRegisterRequest req);
     void sendResetMail(AuthPwdResetVerifyRequest req);
     void resetPassword(AuthPwdResetRequest req);
+
+    void updateProfile(Long userId, UserInfoDTO profileDto);
+    void initiateEmailVerify(Long userId, int suffixType);
+    boolean checkVerifyToken(String token);
 }
