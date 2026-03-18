@@ -33,11 +33,6 @@ public class WisepenWebAutoConfiguration implements WebMvcConfigurer {
                );
     }
 
-    @Bean
-    public RequestInterceptor feignRequestInterceptor() {
-        return new FeignRequestInterceptor(fromSource);
-    }
-
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/**") // 拦截所有接口
