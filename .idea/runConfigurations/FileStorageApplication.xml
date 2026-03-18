@@ -1,0 +1,10 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="FileStorageApplication" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot" nameIsGenerated="true">
+    <module name="wisepen-file-storage-biz" />
+    <option name="SPRING_BOOT_MAIN_CLASS" value="com.oriole.wisepen.file.storage.FileStorageApplication" />
+    <option name="VM_PARAMETERS" value="-javaagent:$ProjectFileDir$/opentelemetry-javaagent.jar -Dotel.service.name=wisepen-file-storage-service -Dotel.traces.sampler=always_on -Dotel.exporter.otlp.endpoint=http://wisepen-dev-server:4318" />
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>
