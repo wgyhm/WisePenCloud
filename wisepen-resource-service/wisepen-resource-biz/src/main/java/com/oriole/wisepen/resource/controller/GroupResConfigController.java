@@ -10,7 +10,6 @@ import com.oriole.wisepen.resource.service.IGroupResService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 @Tag(name = "小组资源配置", description = "小组文件组织模式（Folder / Tag）的查询与设置")
@@ -26,14 +25,14 @@ public class GroupResConfigController {
     @GetMapping("/getConfig")
     public R<GroupResConfigResponse> getConfig(@RequestParam("groupId") String groupId) {
         SecurityContextHolder.assertInGroup(Long.parseLong(groupId));
-        return R.ok(groupResService.getConfig(groupId));
+        return R.ok(groupResService.getGroupResConfig(groupId));
     }
 
     @Operation(summary = "设置小组资源配置", description = "仅小组 OWNER 或 ADMIN 可操作，首次调用时创建记录")
     @PostMapping("/changeConfig")
     public R<Void> upsertConfig(@RequestBody GroupResConfigUpdateRequest req) {
         SecurityContextHolder.assertGroupRole(Long.parseLong(req.getGroupId()), GroupRoleType.OWNER, GroupRoleType.ADMIN);
-        groupResService.upsertConfig(req);
+        groupResService.upsertGroupResConfig(req);
         return R.ok();
     }
 }

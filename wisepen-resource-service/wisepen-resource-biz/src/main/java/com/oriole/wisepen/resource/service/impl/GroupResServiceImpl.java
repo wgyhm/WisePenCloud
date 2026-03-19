@@ -25,10 +25,9 @@ public class GroupResServiceImpl implements IGroupResService {
 
     private final GroupResConfigRepository configRepository;
     private final MongoTemplate mongoTemplate;
-    private final ITagService tagService;
 
     @Override
-    public GroupResConfigResponse getConfig(String groupId) {
+    public GroupResConfigResponse getGroupResConfig(String groupId) {
         FileOrganizationLogic logic = configRepository.findByGroupId(groupId)
                 .map(GroupResConfigEntity::getFileOrgLogic)
                 .orElse(FileOrganizationLogic.FOLDER);
@@ -36,7 +35,7 @@ public class GroupResServiceImpl implements IGroupResService {
     }
 
     @Override
-    public void upsertConfig(GroupResConfigUpdateRequest req) {
+    public void upsertGroupResConfig(GroupResConfigUpdateRequest req) {
         GroupResConfigEntity entity = configRepository.findByGroupId(req.getGroupId())
                 .orElseGet(() -> {
                     GroupResConfigEntity newEntity = new GroupResConfigEntity();
@@ -56,10 +55,7 @@ public class GroupResServiceImpl implements IGroupResService {
     }
 
     @Override
-    public void softDissolveGroup(String groupId) {
-        // Tag 树软删除（resource关联会字段解决）
-        tagService.softRemoveAllTagByGroupId(groupId);
-
+    public void softRemoveGroupResConfig(String groupId) {
         // 配置软删除 将 dissolvedAt 记录后移入 trash（兜底确保 dissolvedAt 存在）
         GroupResConfigEntity config = configRepository.findByGroupId(groupId)
                 .orElseGet(() -> {
@@ -75,16 +71,10 @@ public class GroupResServiceImpl implements IGroupResService {
     }
 
     @Override
-    public void hardDissolveGroup(String groupId) {
-        // Tag 树硬删除 （同步删除Tag绑定的资源）
-        tagService.hardRemoveAllTagByGroupId(groupId);
-
-        // 清理 wisepen_group_res_config_trash 中该组的记录
+    public void hardRemoveGroupResConfig(String groupId) {
         mongoTemplate.remove(
                 Query.query(Criteria.where("groupId").is(groupId)),
                 CONFIG_TRASH_COLLECTION
         );
-
-        log.info("小组 {} 硬删除完成", groupId);
     }
 }

@@ -3,6 +3,7 @@ package com.oriole.wisepen.resource.task;
 import com.oriole.wisepen.resource.config.ResourceProperties;
 import com.oriole.wisepen.resource.domain.entity.GroupResConfigEntity;
 import com.oriole.wisepen.resource.service.IGroupResService;
+import com.oriole.wisepen.resource.service.ITagService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.mongodb.core.MongoTemplate;
@@ -26,6 +27,7 @@ public class ResourceGcTask {
     private final ResourceProperties resourceProperties;
     private final MongoTemplate mongoTemplate;
     private final IGroupResService groupResService;
+    private final ITagService tagService;
 
     @Scheduled(cron = "${wisepen.resource.physical-gc-cron:0 0 3 * * ?}")
     public void garbageCollection() {
@@ -45,7 +47,8 @@ public class ResourceGcTask {
 
         for (GroupResConfigEntity record : expired) {
             try {
-                groupResService.hardDissolveGroup(record.getGroupId());
+                tagService.hardRemoveAllTagByGroupId(record.getGroupId());
+                groupResService.hardRemoveGroupResConfig(record.getGroupId());
             } catch (Exception e) {
                 log.error("小组 {} 硬删除失败，跳过本次处理", record.getGroupId(), e);
             }

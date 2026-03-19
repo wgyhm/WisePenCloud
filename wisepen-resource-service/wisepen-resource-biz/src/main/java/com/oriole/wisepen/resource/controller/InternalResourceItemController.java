@@ -8,6 +8,7 @@ import com.oriole.wisepen.resource.domain.dto.ResourceUpdateReqDTO;
 import com.oriole.wisepen.resource.feign.RemoteResourceService;
 import com.oriole.wisepen.resource.service.IGroupResService;
 import com.oriole.wisepen.resource.service.IResourceService;
+import com.oriole.wisepen.resource.service.ITagService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -19,6 +20,7 @@ public class InternalResourceItemController implements RemoteResourceService {
 
     private final IResourceService resourceService;
     private final IGroupResService groupResService;
+    private final ITagService tagService;
 
     // 注册/新增资源摘要
     @PostMapping("/addRes")
@@ -49,10 +51,11 @@ public class InternalResourceItemController implements RemoteResourceService {
         return R.ok(hasPermission);
     }
 
-    // 小组解散：软删除 Tag 树与配置，写入解散队列（30 天后由定时任务硬删）
+    // 小组解散：软删除 Tag 树与配置
     @PostMapping("/dissolveGroup")
     public R<Void> dissolveGroup(@RequestParam("groupId") Long groupId) {
-        groupResService.softDissolveGroup(groupId.toString());
+        tagService.softRemoveAllTagByGroupId(groupId.toString());
+        groupResService.softRemoveGroupResConfig(groupId.toString());
         return R.ok();
     }
 

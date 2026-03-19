@@ -9,7 +9,6 @@ import com.oriole.wisepen.resource.domain.dto.req.TagDeleteRequest;
 import com.oriole.wisepen.resource.domain.dto.req.TagMoveRequest;
 import com.oriole.wisepen.resource.domain.dto.req.TagUpdateRequest;
 import com.oriole.wisepen.resource.domain.dto.res.TagTreeResponse;
-import com.oriole.wisepen.resource.domain.entity.GroupResConfigEntity;
 import com.oriole.wisepen.resource.domain.entity.TagEntity;
 import com.oriole.wisepen.resource.exception.ResPermissionErrorCode;
 import com.oriole.wisepen.resource.repository.TagRepository;
@@ -35,7 +34,7 @@ public class TagServiceImpl implements ITagService {
     private static final String TAGS_TRASH_COLLECTION = "wisepen_tags_trash";
 
     private final TagRepository tagRepository;
-    private final IResourceService permissionService;
+    private final IResourceService resourceService;
     private final MongoTemplate mongoTemplate;
 
     @Override
@@ -218,7 +217,7 @@ public class TagServiceImpl implements ITagService {
         tagRepository.deleteByGroupIdAndAncestorsContaining(groupID, targetId);
 
         // 资源解绑被删除的Tag（在非个人Tag时，该方法会触发资源权限的重新计算）
-        permissionService.afterTagNodeDeleted(deletedTagIds, groupID.startsWith(ResourceConstants.PERSONAL_GROUP_PREFIX));
+        resourceService.afterTagNodeDeleted(deletedTagIds, groupID.startsWith(ResourceConstants.PERSONAL_GROUP_PREFIX));
     }
 
     // --- 内存组装树 ---
@@ -234,7 +233,7 @@ public class TagServiceImpl implements ITagService {
         List<TagEntity> descendants = tagRepository.findByGroupIdAndAncestorsContaining(groupId, tagId);
         List<String> changedTagIds = descendants.stream().map(TagEntity::getTagId).collect(Collectors.toList());
         changedTagIds.add(tagId);
-        permissionService.afterTagNodeChanged(changedTagIds);
+        resourceService.afterTagNodeChanged(changedTagIds);
     }
 
     @Override
@@ -257,7 +256,7 @@ public class TagServiceImpl implements ITagService {
                 TAGS_TRASH_COLLECTION
         );
         List<String> allTagIds = tags.stream().map(TagEntity::getTagId).collect(Collectors.toList());
-        permissionService.afterTagNodeDeleted(allTagIds, false);
+        resourceService.afterTagNodeDeleted(allTagIds, false);
 
         mongoTemplate.remove(
                 Query.query(Criteria.where("groupId").is(groupId)),
