@@ -26,7 +26,7 @@ set REMOTE_ROOT=/opt/wisepen-cloud
 
 :: 【重点】在这里定义你的服务列表 (用空格隔开核心名称)
 :: 脚本会自动拼接成 wisepen-xxx-service 和 wisepen-xxx-biz
-set SERVICES=user system
+set SERVICES=user system resource file-storage document fudan-extension
 
 echo.
 echo [1/4] 正在执行全量编译...

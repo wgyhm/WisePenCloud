@@ -46,6 +46,98 @@ services:
     networks:
       - cloud-net
 
+  resource-service:
+    image: wisepen/resource-service:latest
+    container_name: wisepen-resource-service
+    restart: always
+    build:
+      context: ../
+      dockerfile: Dockerfile
+      args:
+        JAR_FILE: wisepen-resource-service/wisepen-resource-biz/target/*.jar
+    environment:
+      - TZ=Asia/Shanghai
+      - SPRING_PROFILES_ACTIVE=prod
+      - SPRING_CLOUD_NACOS_DISCOVERY_SERVER_ADDR=nacos:8848
+      - SPRING_CLOUD_NACOS_CONFIG_SERVER_ADDR=nacos:8848
+      - OTEL_SERVICE_NAME=wisepen-resource-service
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
+      - SPRING_CLOUD_INETUTILS_PREFERRED_NETWORKS=
+
+    volumes:
+      - ../logs/system:/logs
+    networks:
+      - cloud-net
+
+  document-service:
+    image: wisepen/document-service:latest
+    container_name: wisepen-document-service
+    restart: always
+    build:
+      context: ../
+      dockerfile: Dockerfile
+      args:
+        JAR_FILE: wisepen-document-service/wisepen-document-biz/target/*.jar
+    environment:
+      - TZ=Asia/Shanghai
+      - SPRING_PROFILES_ACTIVE=prod
+      - SPRING_CLOUD_NACOS_DISCOVERY_SERVER_ADDR=nacos:8848
+      - SPRING_CLOUD_NACOS_CONFIG_SERVER_ADDR=nacos:8848
+      - OTEL_SERVICE_NAME=wisepen-document-service
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
+      - SPRING_CLOUD_INETUTILS_PREFERRED_NETWORKS=
+
+    volumes:
+      - ../logs/system:/logs
+    networks:
+      - cloud-net
+
+  file-storage-service:
+    image: wisepen/file-storage-service:latest
+    container_name: wisepen-file-storage-service
+    restart: always
+    build:
+      context: ../
+      dockerfile: Dockerfile
+      args:
+        JAR_FILE: wisepen-file-storage-service/wisepen-file-storage-biz/target/*.jar
+    environment:
+      - TZ=Asia/Shanghai
+      - SPRING_PROFILES_ACTIVE=prod
+      - SPRING_CLOUD_NACOS_DISCOVERY_SERVER_ADDR=nacos:8848
+      - SPRING_CLOUD_NACOS_CONFIG_SERVER_ADDR=nacos:8848
+      - OTEL_SERVICE_NAME=wisepen-file-storage-service
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
+      - SPRING_CLOUD_INETUTILS_PREFERRED_NETWORKS=
+
+    volumes:
+      - ../logs/system:/logs
+    networks:
+      - cloud-net
+
+  fudan-extension-service:
+    image: wisepen/fudan-extension-service:latest
+    container_name: wisepen-fudan-extension-service
+    restart: always
+    build:
+      context: ../
+      dockerfile: Dockerfile
+      args:
+        JAR_FILE: wisepen-fudan-extension-service/wisepen-fudan-extension-biz/target/*.jar
+    environment:
+      - TZ=Asia/Shanghai
+      - SPRING_PROFILES_ACTIVE=prod
+      - SPRING_CLOUD_NACOS_DISCOVERY_SERVER_ADDR=nacos:8848
+      - SPRING_CLOUD_NACOS_CONFIG_SERVER_ADDR=nacos:8848
+      - OTEL_SERVICE_NAME=wisepen-fudan-extension-service
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
+      - SPRING_CLOUD_INETUTILS_PREFERRED_NETWORKS=
+
+    volumes:
+      - ../logs/system:/logs
+    networks:
+      - cloud-net
+
 networks:
   cloud-net:
     external: true
