@@ -31,7 +31,9 @@ import com.oriole.wisepen.user.service.GroupMemberService;
 import com.oriole.wisepen.user.service.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.BeanUtils;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.context.annotation.Bean;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -505,12 +507,8 @@ public class GroupMemberServiceImpl implements GroupMemberService {
 		List<GroupMemberGetTransactionsResponse> records = transactionPage.getRecords().stream()
 				.map(record -> {
 					GroupMemberGetTransactionsResponse resp = new GroupMemberGetTransactionsResponse();
-					resp.setTraceId(record.getTraceId());
-					resp.setCreateTime(record.getCreateTime());
-					resp.setChangeType(record.getChangeType());
+					BeanUtil.copyProperties(record, resp);
 					resp.setAmount((long) record.getTokenCount());
-					resp.setMeta(record.getMeta());
-					resp.setOperatorName(record.getOperatorName());
 					return resp;
 				})
 				.collect(Collectors.toList());
@@ -555,6 +553,4 @@ public class GroupMemberServiceImpl implements GroupMemberService {
 				.setSql("token_balance = token_balance + " + amount);
 		groupMapper.update(null, wrapper2);
 	}
-
-
 }
