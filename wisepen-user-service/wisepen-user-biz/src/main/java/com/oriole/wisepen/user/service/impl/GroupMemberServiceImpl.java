@@ -417,7 +417,12 @@ public class GroupMemberServiceImpl implements GroupMemberService {
 				.build();
 		tokenRecordMapper.insert(tokenRecordEntity);
 	}
-
+	private void validateGroupType(Long groupId) {
+		GroupEntity group = groupMapper.selectById(groupId);
+		if (GroupType.ADVANCED_GROUP!=group.getGroupType()) {
+			throw new ServiceException(GroupErrorCode.GROUP_HAS_NO_QUOTA);
+		}
+	}
 	@Override
 	public GroupMemberGetTokenResponse getWalletInfo(ConsumerType targetType, Long targetId) {
 		if (targetType==ConsumerType.USER) {
@@ -433,6 +438,8 @@ public class GroupMemberServiceImpl implements GroupMemberService {
 
 	@Override
 	public void redeemVoucher(ConsumerType targetType, Long targetId, String code) {
+		if (targetType==ConsumerType.GROUP) validateGroupType(targetId);
+
 		LambdaQueryWrapper<VoucherEntity> wrapper = new LambdaQueryWrapper<VoucherEntity>().eq(VoucherEntity::getCode, code);
 		VoucherEntity voucher = voucherMapper.selectOne(wrapper);
 		if (voucher==null) throw new ServiceException(GroupErrorCode.VOUCHER_NOT_EXIST);
@@ -473,6 +480,7 @@ public class GroupMemberServiceImpl implements GroupMemberService {
 
 	@Override
 	public PageResult<GroupMemberGetTransactionsResponse> getTransactions(ConsumerType targetType, Long targetId, Integer page, Integer size, ChangeType changeType) {
+		if (targetType==ConsumerType.GROUP) validateGroupType(targetId);
 		Page<TokenRecordEntity> pageParam = new Page<>(page, size);
 		LambdaQueryWrapper<TokenRecordEntity> wrapper = new LambdaQueryWrapper<>();
 		wrapper.eq(TokenRecordEntity::getTargetId, targetId)
@@ -504,6 +512,9 @@ public class GroupMemberServiceImpl implements GroupMemberService {
 	@Override
 	public void exchangeTokenToOwner(Long userId, Long groupId, Integer amount) {
 		GroupEntity group = groupMapper.selectById(groupId);
+		if (GroupType.ADVANCED_GROUP!=group.getGroupType()) {
+			throw new ServiceException(GroupErrorCode.GROUP_HAS_NO_QUOTA);
+		}
 		if (group.getTokenBalance()<amount) {
 			throw new ServiceException(GroupErrorCode.LIMIT_CANNOT_BE_LOWER_THAN_USED);
 		}
@@ -520,6 +531,7 @@ public class GroupMemberServiceImpl implements GroupMemberService {
 
 	@Override
 	public void exchangeTokenToGroup(Long userId, Long groupId, Integer amount) {
+		validateGroupType(groupId);
 		UserTokenPoolEntity user = userWalletsMapper.selectById(userId);
 		if (user.getTokenBalance()<amount) {
 			throw new ServiceException(GroupErrorCode.LIMIT_CANNOT_BE_LOWER_THAN_USED);
