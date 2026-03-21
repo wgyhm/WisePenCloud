@@ -185,7 +185,7 @@ public class ResourceServiceImpl implements IResourceService {
             return resp;
         }).collect(Collectors.toList());
 
-        PageResult<ResourceItemResponse> pageResult = new PageResult<>(page, size, (int) entityPage.getTotalElements());
+        PageResult<ResourceItemResponse> pageResult = new PageResult<>(entityPage.getTotalElements(), page, size);
         pageResult.addAll(responses);
         return pageResult;
     }
