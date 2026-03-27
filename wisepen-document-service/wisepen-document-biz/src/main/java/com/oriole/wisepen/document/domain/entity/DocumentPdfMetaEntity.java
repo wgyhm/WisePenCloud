@@ -12,8 +12,6 @@ import java.util.List;
  * 供后续 Range-Request 劫持式增量更新预览接口使用。
  *
  * <p>与 document_info（MySQL）共用同一 documentId 作为主键，做到一对一关联。
- *
- * @author Ian.xiong
  */
 @Data
 @Document(collection = "document_pdf_meta")

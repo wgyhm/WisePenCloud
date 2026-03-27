@@ -20,8 +20,6 @@ import static com.oriole.wisepen.document.api.constant.MqTopicConstants.TOPIC_DO
  * </ul>
  * 状态到达 READY 后，下游模块（ES 索引、Agentic 等）可以订阅此 Topic 异步消费。
  * </p>
- *
- * @author Ian.xiong
  */
 @Slf4j
 @Component

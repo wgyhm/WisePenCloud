@@ -2,11 +2,10 @@ package com.oriole.wisepen.document.service;
 
 import com.oriole.wisepen.document.api.domain.dto.req.DocumentUploadInitRequest;
 import com.oriole.wisepen.document.api.domain.dto.res.DocumentUploadInitResponse;
+import com.oriole.wisepen.document.domain.entity.DocumentInfoEntity;
 
 /**
  * 文档生命周期管理服务
- *
- * @author Ian.xiong
  */
 public interface IDocumentService {
 
@@ -18,14 +17,14 @@ public interface IDocumentService {
      * @param uploaderId 上传者用户 ID
      * @return 初始化响应（documentId、putUrl、objectKey、flashUploaded）
      */
-    DocumentUploadInitResponse initUpload(DocumentUploadInitRequest request, Long uploaderId);
+    DocumentUploadInitResponse initUploadDocument(DocumentUploadInitRequest request, Long uploaderId);
 
     /**
      * 重试转换：仅当文档处于 FAILED 状态时可调用，重置错误信息并重新派发解析任务。
      *
      * @param documentId 文档唯一 ID
      */
-    void retryConvert(String documentId);
+    void retryDocumentConvert(String documentId);
 
     /**
      * 删除文档或取消上传，在任意阶段均可调用。
@@ -39,5 +38,7 @@ public interface IDocumentService {
      *
      * @param documentId 文档唯一 ID
      */
-    void cancelOrDelete(String documentId);
+    void cancelOrDeleteDocument(String documentId);
+
+    DocumentInfoEntity getDocumentInfo(String documentId);
 }

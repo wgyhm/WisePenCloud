@@ -8,8 +8,6 @@ import com.oriole.wisepen.document.domain.entity.DocumentPdfMetaEntity;
 /**
  * 文档处理流水线服务：封装 document_info 状态机推进和 MongoDB 内容归档操作，
  * 供各阶段 Consumer 调用，避免 Consumer 直接持有 Mapper / Repository。
- *
- * @author Ian.xiong
  */
 public interface IDocumentProcessService {
 

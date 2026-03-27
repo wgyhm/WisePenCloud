@@ -7,8 +7,6 @@ import java.util.Set;
 /**
  * 文档服务常量：声明本服务对文件类型的策略（允许上传范围、需要转换的格式），
  * 与平台通用类型枚举 {@link ResourceTypeEnum} 解耦。
- *
- * @author Ian.xiong
  */
 public class DocumentConstants {
 

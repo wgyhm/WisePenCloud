@@ -32,8 +32,6 @@ import static com.oriole.wisepen.file.storage.api.constant.MqTopicConstants.TOPI
  *   <li>派发 {@link DocumentParseTaskMessage} 到解析队列，触发 Stage 3</li>
  * </ol>
  * </p>
- *
- * @author Ian.xiong
  */
 @Slf4j
 @Component

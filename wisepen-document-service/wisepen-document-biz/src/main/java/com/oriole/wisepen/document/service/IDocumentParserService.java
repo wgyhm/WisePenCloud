@@ -8,8 +8,6 @@ import java.io.File;
  * Office 转换依赖本地 LibreOffice 实例（jodconverter）；
  * 文本提取依赖 Apache Tika（自动发现 classpath 上的 PDFBox 解析器）。
  * </p>
- *
- * @author Ian.xiong
  */
 public interface IDocumentParserService {
 

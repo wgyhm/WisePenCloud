@@ -9,8 +9,6 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 
 /**
  * 文档服务启动类
- *
- * @author Ian.xiong
  */
 @EnableScheduling
 @EnableDiscoveryClient

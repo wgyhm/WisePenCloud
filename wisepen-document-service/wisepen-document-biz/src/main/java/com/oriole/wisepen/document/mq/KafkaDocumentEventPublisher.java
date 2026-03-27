@@ -13,8 +13,6 @@ import static com.oriole.wisepen.document.api.constant.MqTopicConstants.TOPIC_DO
 
 /**
  * 文档服务 Kafka 事件发布器
- *
- * @author Ian.xiong
  */
 @Slf4j
 @Component

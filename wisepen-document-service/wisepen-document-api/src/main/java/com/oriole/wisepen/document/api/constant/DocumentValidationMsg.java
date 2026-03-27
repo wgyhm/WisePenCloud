@@ -2,8 +2,6 @@ package com.oriole.wisepen.document.api.constant;
 
 /**
  * 文档服务字段校验提示常量
- *
- * @author Ian.xiong
  */
 public class DocumentValidationMsg {
 

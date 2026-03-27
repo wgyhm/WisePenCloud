@@ -16,8 +16,6 @@ import java.io.IOException;
 
 /**
  * 文档解析服务实现：整合 Office→PDF 转换（jodconverter）和纯文本提取（PDFBox）。
- *
- * @author Ian.xiong
  */
 @Slf4j
 @Service

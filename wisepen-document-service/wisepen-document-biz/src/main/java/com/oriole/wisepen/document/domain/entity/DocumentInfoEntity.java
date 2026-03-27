@@ -15,7 +15,7 @@ public class DocumentInfoEntity extends DocumentInfoBase {
 
     /**
      * 文档唯一 ID，直接复用 resource 服务返回的 resourceId（全局唯一，无需自造 ID）。
-     * MySQL 类型：VARCHAR，由服务层在 initUpload 时写入。
+     * MySQL 类型：VARCHAR，由服务层在 initUploadDocument 时写入。
      */
     @TableId(type = IdType.INPUT)
     private String documentId;

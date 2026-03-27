@@ -6,8 +6,6 @@ import org.springframework.stereotype.Repository;
 
 /**
  * 文档纯文本内容 MongoDB Repository
- *
- * @author Ian.xiong
  */
 @Repository
 public interface DocumentContentRepository extends MongoRepository<DocumentContentEntity, String> {

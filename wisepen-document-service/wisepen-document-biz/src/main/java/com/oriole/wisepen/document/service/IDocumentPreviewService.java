@@ -15,8 +15,6 @@ import jakarta.servlet.http.HttpServletResponse;
  * <p>对外宣告的 {@code Content-Length = originalSize + appendixSize}，
  * pdf.js 按需发起的 Range 请求均可被正确处理，前半段零内存透传 OSS，
  * 后半段内存生成约 10 KB 的增量附录。
- *
- * @author Ian.xiong
  */
 public interface IDocumentPreviewService {
 

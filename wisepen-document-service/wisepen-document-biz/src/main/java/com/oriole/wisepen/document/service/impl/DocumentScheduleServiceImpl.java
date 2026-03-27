@@ -25,8 +25,6 @@ import java.util.List;
  * 超时阈值按文件大小动态计算，防止大文件被误判；
  * 最小 {@code baseTimeoutMs}（默认 10 分钟），最大 {@code maxTimeoutMs}（默认 60 分钟）。
  * </p>
- *
- * @author Ian.xiong
  */
 @Slf4j
 @Service

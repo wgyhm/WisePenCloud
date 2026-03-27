@@ -14,8 +14,6 @@ import org.springframework.web.bind.annotation.*;
 
 /**
  * 文档管理接口（对外开放）
- *
- * @author Ian.xiong
  */
 @RestController
 @RequestMapping("/document")
@@ -29,18 +27,18 @@ public class DocumentController {
      * 上传初始化：前端提交 md5/filename/extension/expectedSize，
      * 后端返回 OSS 预签名直传 URL，前端直接将文件字节流 PUT 到 OSS。
      */
-    @PostMapping("/upload/init")
+    @PostMapping("/initDocUpload")
     public R<DocumentUploadInitResponse> initUpload(@Valid @RequestBody DocumentUploadInitRequest request) {
         Long uploaderId = SecurityContextHolder.getUserId();
-        return R.ok(documentService.initUpload(request, uploaderId));
+        return R.ok(documentService.initUploadDocument(request, uploaderId));
     }
 
     /**
      * 重试转换：仅在文档处于 FAILED 状态时可调用，用于转换失败后的人工重试。
      */
-    @PostMapping("/{documentId}/retry")
-    public R<Void> retryConvert(@PathVariable String documentId) {
-        documentService.retryConvert(documentId);
+    @PostMapping("/retryDocConvert")
+    public R<Void> retryConvert(@RequestParam String documentId) {
+        documentService.retryDocumentConvert(documentId);
         return R.ok();
     }
 
@@ -57,8 +55,8 @@ public class DocumentController {
      * <p>明水印：userId + 预览时间戳，45° 斜向；暗水印：AES-128 二值矩阵 9×9 平铺，透明度 1%。<br>
      * 仅 {@code READY} 状态的文档可预览。
      */
-    @GetMapping("/{documentId}/preview")
-    public void preview(@PathVariable String documentId,
+    @GetMapping("/getDocPreview")
+    public void preview(@RequestParam String documentId,
                         HttpServletRequest request,
                         HttpServletResponse response) {
         String userId = String.valueOf(SecurityContextHolder.getUserId());
@@ -72,9 +70,9 @@ public class DocumentController {
      * 调用方须已通过鉴权中间件的身份校验。
      * </p>
      */
-    @DeleteMapping("/{documentId}")
-    public R<Void> cancelOrDelete(@PathVariable String documentId) {
-        documentService.cancelOrDelete(documentId);
+    @PostMapping("/deletedDoc")
+    public R<Void> cancelOrDelete(@RequestParam String documentId) {
+        documentService.cancelOrDeleteDocument(documentId);
         return R.ok();
     }
 }

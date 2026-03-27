@@ -75,8 +75,6 @@ import static com.oriole.wisepen.document.api.constant.MqTopicConstants.TOPIC_DO
  * 任意步骤抛出异常时，文档状态回落为 {@code FAILED}，错误摘要写入 errorMessage 字段，
  * 并清理所有本地临时文件。
  * </p>
- *
- * @author Ian.xiong
  */
 @Slf4j
 @Component

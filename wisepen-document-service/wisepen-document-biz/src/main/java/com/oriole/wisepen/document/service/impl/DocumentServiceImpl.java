@@ -9,6 +9,7 @@ import com.oriole.wisepen.document.api.domain.dto.req.DocumentUploadInitRequest;
 import com.oriole.wisepen.document.api.domain.dto.res.DocumentUploadInitResponse;
 import com.oriole.wisepen.document.api.domain.mq.DocumentParseTaskMessage;
 import com.oriole.wisepen.document.api.enums.DocumentStatusEnum;
+import com.oriole.wisepen.document.domain.entity.DocumentContentEntity;
 import com.oriole.wisepen.document.domain.entity.DocumentInfoEntity;
 import com.oriole.wisepen.document.exception.DocumentErrorCode;
 import com.oriole.wisepen.document.mapper.DocumentInfoMapper;
@@ -34,8 +35,6 @@ import java.util.stream.Stream;
 
 /**
  * 文档上传服务实现
- *
- * @author Ian.xiong
  */
 @Slf4j
 @Service
@@ -51,7 +50,7 @@ public class DocumentServiceImpl implements IDocumentService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public DocumentUploadInitResponse initUpload(DocumentUploadInitRequest request, Long uploaderId) {
+    public DocumentUploadInitResponse initUploadDocument(DocumentUploadInitRequest request, Long uploaderId) {
         ResourceTypeEnum fileType = ResourceTypeEnum.fromExtension(request.getExtension());
         if (fileType == null || !DocumentConstants.ALLOWED_TYPES.contains(fileType)) {
             throw new ServiceException(DocumentErrorCode.DOCUMENT_TYPE_NOT_ALLOWED);
@@ -106,7 +105,7 @@ public class DocumentServiceImpl implements IDocumentService {
     }
 
     @Override
-    public void retryConvert(String documentId) {
+    public void retryDocumentConvert(String documentId) {
         DocumentInfoEntity doc = documentInfoMapper.selectById(documentId);
         if (doc == null) {
             throw new ServiceException(DocumentErrorCode.DOCUMENT_NOT_FOUND);
@@ -128,13 +127,13 @@ public class DocumentServiceImpl implements IDocumentService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void cancelOrDelete(String documentId) {
+    public void cancelOrDeleteDocument(String documentId) {
         DocumentInfoEntity doc = documentInfoMapper.selectById(documentId);
         if (doc == null) {
             throw new ServiceException(DocumentErrorCode.DOCUMENT_NOT_FOUND);
         }
 
-        // 收集所有已知的 OSS 对象键：source 在 initUpload 时写入，preview 在 Stage 3 完成后写入
+        // 收集所有已知的 OSS 对象键：source 在 initUploadDocument 时写入，preview 在 Stage 3 完成后写入
         List<String> objectKeys = Stream.of(doc.getSourceObjectKey(), doc.getPreviewObjectKey())
                 .filter(StrUtil::isNotBlank)
                 .collect(Collectors.toList());
@@ -162,5 +161,14 @@ public class DocumentServiceImpl implements IDocumentService {
         documentInfoMapper.deleteById(documentId);
 
         log.info("文档已删除/取消: documentId={}", documentId);
+    }
+
+    @Override
+    public DocumentInfoEntity getDocumentInfo(String documentId) {
+        DocumentInfoEntity documentInfoEntity = documentInfoMapper.selectById(documentId);
+        if (documentInfoEntity == null) {
+            throw new ServiceException(DocumentErrorCode.DOCUMENT_NOT_FOUND);
+        }
+        return documentInfoEntity;
     }
 }

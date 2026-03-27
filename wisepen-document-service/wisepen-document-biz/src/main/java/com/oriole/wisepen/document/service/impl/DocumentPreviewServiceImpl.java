@@ -44,8 +44,6 @@ import java.util.regex.Pattern;
  *   <li>落在附录段：动态生成 appendix byte[]，按偏移切片写出。</li>
  *   <li>跨界：先透传 OSS 尾部，再写附录头部。</li>
  * </ul>
- *
- * @author Ian.xiong
  */
 @Slf4j
 @Service
@@ -120,10 +118,6 @@ public class DocumentPreviewServiceImpl implements IDocumentPreviewService {
         }
     }
 
-    // =========================================================================
-    //  Range 处理
-    // =========================================================================
-
     private void handleRangeRequest(String rangeHeader,
                                      long totalSize, long originalSize,
                                      String ossUrl,
@@ -173,10 +167,6 @@ public class DocumentPreviewServiceImpl implements IDocumentPreviewService {
         }
     }
 
-    // =========================================================================
-    //  OSS 代理
-    // =========================================================================
-
     /**
      * 向 OSS 发起 Range 请求，将响应体以 64 KB 缓冲管道写入 {@code out}（零内存拷贝）。
      */
@@ -204,10 +194,7 @@ public class DocumentPreviewServiceImpl implements IDocumentPreviewService {
         }
     }
 
-    // =========================================================================
     //  附录生成
-    // =========================================================================
-
     private byte[] buildAppendix(DocumentPdfMetaEntity meta,
                                   String userId,
                                   LocalDateTime time) {

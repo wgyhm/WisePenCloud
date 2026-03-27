@@ -5,8 +5,6 @@ import org.springframework.data.mongodb.repository.MongoRepository;
 
 /**
  * PDF 结构元数据的 MongoDB Repository。
- *
- * @author Ian.xiong
  */
 public interface DocumentPdfMetaRepository extends MongoRepository<DocumentPdfMetaEntity, String> {
 }

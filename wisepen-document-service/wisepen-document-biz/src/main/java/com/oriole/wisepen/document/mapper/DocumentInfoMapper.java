@@ -4,9 +4,6 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.oriole.wisepen.document.domain.entity.DocumentInfoEntity;
 import org.apache.ibatis.annotations.Mapper;
 
-/**
- * @author Ian.xiong
- */
 @Mapper
 public interface DocumentInfoMapper extends BaseMapper<DocumentInfoEntity> {
 }
