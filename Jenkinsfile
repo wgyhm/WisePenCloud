@@ -4,7 +4,7 @@ pipeline {
     // 环境变量配置中心
     environment {
         // 项目基础名称
-        PROJECT_NAME = 'WisepenCloud'
+        PROJECT_NAME = 'wisepencloud'
         // Docker 镜像仓库地址 (如果在单机内网部署，可以直接留空或使用 local)
         DOCKER_REGISTRY = 'local'
         // 动态获取 Git 提交的简短哈希作为镜像版本 Tag
