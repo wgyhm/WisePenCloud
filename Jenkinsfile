@@ -36,6 +36,17 @@ pipeline {
                         sh 'chmod +x ./mvnw'
                         // 多模块统一编译打包，跳过测试，开启单核多线程编译加快速度
                         sh './mvnw clean package -Dmaven.test.skip=true -T 1C'
+                        sh '''
+                        echo "开始整理构建产物..."
+                        # 遍历所有服务模块
+                        for dir in wisepen-*-service/*-biz; do
+                            if [ -d "$dir/target" ]; then
+                                # 精确查找 .jar 结尾，并排除 .original 和 -sources.jar 的包，重命名为 app.jar 放至模块根目录
+                                find "$dir/target" -maxdepth 1 -name "*.jar" ! -name "*.original" ! -name "*-sources.jar" -exec cp {} "$dir/app.jar" \\;
+                                echo "已成功提取: $dir/app.jar"
+                            fi
+                        done
+                        '''
                     }
                 }
             }

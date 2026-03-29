@@ -6,7 +6,7 @@ WORKDIR /app
 ARG MODULE_NAME
 
 # 复制业务 Jar 包
-COPY ${MODULE_NAME}/target/*.jar app.jar
+COPY ${MODULE_NAME}/app.jar app.jar
 
 # 暴露端口
 EXPOSE 8080
