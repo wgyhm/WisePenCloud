@@ -55,13 +55,18 @@ pipeline {
         stage('2.5 准备可观测性探针 (OTel Agent)') {
             steps {
                 echo "检查并下载 OpenTelemetry Java Agent..."
-                // 如果本地没有，就自动下载到项目根目录供所有 Dockerfile COPY 使用
                 sh '''
-                if [ ! -f "opentelemetry-javaagent.jar" ]; then
-                    echo "本地无探针，开始下载..."
-                    curl -L -# -o opentelemetry-javaagent.jar https://github.com/open-telemetry/opentelemetry-java-instrumentation/releases/latest/download/opentelemetry-javaagent.jar
+                FILE="opentelemetry-javaagent.jar"
+
+                # 如果文件不存在，或者文件大小小于10MB，说明下载损坏了
+                if [ ! -f "$FILE" ] || [ $(wc -c < "$FILE") -lt 10000000 ]; then
+                    echo "本地探针缺失或已损坏，开始从阿里云镜像极速下载..."
+                    # 删除坏文件
+                    rm -f "$FILE"
+                    # 弃用 GitHub，改用阿里云 Maven 官方镜像仓库，解决国内网络阻断问题
+                    curl -f -L -# -o "$FILE" https://maven.aliyun.com/repository/public/io/opentelemetry/javaagent/opentelemetry-javaagent/1.32.0/opentelemetry-javaagent-1.32.0.jar
                 else
-                    echo "探针已存在，跳过下载"
+                    echo "探针文件已存在且大小正常，跳过下载。"
                 fi
                 '''
             }
