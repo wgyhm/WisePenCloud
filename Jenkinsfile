@@ -48,7 +48,7 @@ pipeline {
                 sh '''
                 if [ ! -f "opentelemetry-javaagent.jar" ]; then
                     echo "本地无探针，开始下载..."
-                    wget -q --show-progress -O opentelemetry-javaagent.jar https://github.com/open-telemetry/opentelemetry-java-instrumentation/releases/latest/download/opentelemetry-javaagent.jar
+                    curl -L -# -o opentelemetry-javaagent.jar https://github.com/open-telemetry/opentelemetry-java-instrumentation/releases/latest/download/opentelemetry-javaagent.jar
                 else
                     echo "探针已存在，跳过下载"
                 fi
