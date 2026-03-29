@@ -21,6 +21,7 @@
         <module>wisepen-file-storage-service</module>
         <module>wisepen-document-service</module>
         <module>wisepen-fudan-extension-service</module>
+        <module>wisepen-note-service</module>
     </modules>
 
     <properties>
