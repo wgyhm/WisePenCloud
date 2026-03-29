@@ -151,7 +151,7 @@ pipeline {
 
                     # 重新拉取镜像并重启变更的服务
                     cd deploy
-                    docker-compose -f docker-compose-app.yml up -d --remove-orphans
+                    docker compose -f docker-compose-app.yml up -d --remove-orphans
                     """
 
                     // 通过 Python 脚本远程部署到其他服务器
@@ -161,7 +161,7 @@ pipeline {
         }
     }
 
-           // 后置处理钩子
+    // 后置处理钩子
     post {
         always {
             // 清理悬挂的无用镜像 (<none>:<none>)，防止长年累月撑爆 Jenkins 宿主机磁盘
