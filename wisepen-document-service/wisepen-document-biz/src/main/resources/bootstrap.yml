@@ -13,8 +13,12 @@ spring:
     nacos:
       discovery:
         server-addr: wisepen-dev-server:8848
+        username: ${NACOS_USERNAME}
+        password: ${NACOS_PASSWORD}
       config:
         server-addr: wisepen-dev-server:8848
+        username: ${NACOS_USERNAME}
+        password: ${NACOS_PASSWORD}
         file-extension: yaml
         group: DEFAULT_GROUP
         shared-configs:

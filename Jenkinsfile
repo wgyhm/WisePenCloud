@@ -125,46 +125,49 @@ pipeline {
         }
 
         stage('4. 自动化部署 (Deploy)') {
-                   steps {
-                       script {
-                           echo "开始部署最新版本: ${IMAGE_TAG} ..."
+            environment {
+                NACOS_USER = credentials('nacos-username')
+                NACOS_PWD  = credentials('nacos-password')
+            }
+            steps {
+                script {
+                    echo "开始部署最新版本: ${IMAGE_TAG} ..."
+                    // Jenkins 和 运行服务器 在同一台宿主机
+                    sh """
+                    # 导出版本号给 docker-compose 读取
+                    export APP_VERSION=${IMAGE_TAG}
+                    export DOCKER_REGISTRY=${DOCKER_REGISTRY}
 
-                           // Jenkins 和 运行服务器 在同一台宿主机
-                           sh """
-                           # 导出版本号给 docker-compose 读取
-                           export APP_VERSION=${IMAGE_TAG}
-                           export DOCKER_REGISTRY=${DOCKER_REGISTRY}
+                    # 重新拉取镜像并重启变更的服务
+                    cd deploy
+                    docker-compose -f docker-compose-app.yml up -d --remove-orphans
+                    """
 
-                           # 重新拉取镜像并重启变更的服务
-                           cd deploy
-                           docker-compose -f docker-compose-app.yml up -d --remove-orphans
-                           """
-
-                           // 通过 Python 脚本远程部署到其他服务器
-                           // sh "python3 deploy/dev-tools/remote_deploy.py --tag ${IMAGE_TAG} --registry ${DOCKER_REGISTRY}"
-                       }
-                   }
-               }
-           }
+                    // 通过 Python 脚本远程部署到其他服务器
+                    // sh "python3 deploy/dev-tools/remote_deploy.py --tag ${IMAGE_TAG} --registry ${DOCKER_REGISTRY}"
+                }
+            }
+        }
+    }
 
            // 后置处理钩子
-           post {
-               always {
-                   // 清理悬挂的无用镜像 (<none>:<none>)，防止长年累月撑爆 Jenkins 宿主机磁盘
-                   echo "执行 Docker 垃圾回收..."
-                   sh 'docker image prune -f'
-               }
-               success {
-                   echo "🎉 构建与部署大功告成！版本: ${IMAGE_TAG}"
-                   // 可以在这里增加 curl 命令发送钉钉/飞书 webhook 机器人通知
-                   // sh """
-                   // curl -X POST 'https://oapi.dingtalk.com/robot/send?access_token=xxx' \
-                   // -H 'Content-Type: application/json' \
-                   // -d '{"msgtype": "text", "text": {"content": "【WisePenCloud CI/CD】\n版本 ${IMAGE_TAG} 已成功部署！"}}'
-                   // """
-               }
-               failure {
-                   echo "❌ 流水线执行失败，请检查 Jenkins 控制台报错日志！"
-               }
-           }
-       }
+    post {
+        always {
+            // 清理悬挂的无用镜像 (<none>:<none>)，防止长年累月撑爆 Jenkins 宿主机磁盘
+            echo "执行 Docker 垃圾回收..."
+            sh 'docker image prune -f'
+        }
+        success {
+            echo "🎉 构建与部署大功告成！版本: ${IMAGE_TAG}"
+            // 可以在这里增加 curl 命令发送钉钉/飞书 webhook 机器人通知
+            // sh """
+            // curl -X POST 'https://oapi.dingtalk.com/robot/send?access_token=xxx' \
+            // -H 'Content-Type: application/json' \
+            // -d '{"msgtype": "text", "text": {"content": "【WisePenCloud CI/CD】\n版本 ${IMAGE_TAG} 已成功部署！"}}'
+            // """
+        }
+        failure {
+            echo "❌ 流水线执行失败，请检查 Jenkins 控制台报错日志！"
+        }
+    }
+}

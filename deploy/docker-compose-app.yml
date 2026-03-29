@@ -18,6 +18,8 @@ services:
       - OTEL_SERVICE_NAME=wisepen-user-service
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
       - SPRING_CLOUD_INETUTILS_PREFERRED_NETWORKS=
+      - NACOS_USERNAME=${NACOS_USERNAME}
+      - NACOS_PASSWORD=${NACOS_PASSWORD}
     volumes:
       - ../logs/user:/logs
     networks:
@@ -40,7 +42,8 @@ services:
       - OTEL_SERVICE_NAME=wisepen-system-service
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
       - SPRING_CLOUD_INETUTILS_PREFERRED_NETWORKS=
-
+      - NACOS_USERNAME=${NACOS_USERNAME}
+      - NACOS_PASSWORD=${NACOS_PASSWORD}
     volumes:
       - ../logs/system:/logs
     networks:
@@ -63,7 +66,8 @@ services:
       - OTEL_SERVICE_NAME=wisepen-resource-service
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
       - SPRING_CLOUD_INETUTILS_PREFERRED_NETWORKS=
-
+      - NACOS_USERNAME=${NACOS_USERNAME}
+      - NACOS_PASSWORD=${NACOS_PASSWORD}
     volumes:
       - ../logs/system:/logs
     networks:
@@ -86,7 +90,8 @@ services:
       - OTEL_SERVICE_NAME=wisepen-document-service
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
       - SPRING_CLOUD_INETUTILS_PREFERRED_NETWORKS=
-
+      - NACOS_USERNAME=${NACOS_USERNAME}
+      - NACOS_PASSWORD=${NACOS_PASSWORD}
     volumes:
       - ../logs/system:/logs
     networks:
@@ -109,7 +114,8 @@ services:
       - OTEL_SERVICE_NAME=wisepen-file-storage-service
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
       - SPRING_CLOUD_INETUTILS_PREFERRED_NETWORKS=
-
+      - NACOS_USERNAME=${NACOS_USERNAME}
+      - NACOS_PASSWORD=${NACOS_PASSWORD}
     volumes:
       - ../logs/system:/logs
     networks:
@@ -132,7 +138,8 @@ services:
       - OTEL_SERVICE_NAME=wisepen-fudan-extension-service
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
       - SPRING_CLOUD_INETUTILS_PREFERRED_NETWORKS=
-
+      - NACOS_USERNAME=${NACOS_USERNAME}
+      - NACOS_PASSWORD=${NACOS_PASSWORD}
     volumes:
       - ../logs/system:/logs
     networks:
