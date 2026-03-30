@@ -1,7 +1,8 @@
 #!/bin/bash
 
 # ================= 环境变量定义 =================
-APISIX_ADMIN="http://127.0.0.1:9180"
+CONTAINER_NAME="apisix" # 容器名
+APISIX_ADMIN="http://${CONTAINER_NAME}:9180"
 ADMIN_KEY="edd1c9f034335f136f87ad84b625c8f1"
 
 # 全局模版

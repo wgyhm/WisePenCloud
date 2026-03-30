@@ -19,14 +19,17 @@ pipeline {
         stage('2. 环境检查与准备') {
             steps {
                 script {
-                    // setup.sh 强依赖 jq，这里确保宿主机已安装
                     sh '''
                     if ! command -v jq &> /dev/null; then
-                        echo "系统缺失 jq，正在尝试自动安装..."
-                        # 根据你的操作系统选择合适的包管理器，如果宿主机无 root 权限，需提前手动装好 jq
-                        sudo apt-get update && sudo apt-get install -y jq || sudo yum install -y jq || echo "请手动安装 jq！"
+                        echo "系统缺失 jq，正在下载独立二进制版本..."
+                        mkdir -p $LOCAL_BIN
+                        # 使用 GitHub 加速下载 jq 的 Linux amd64 版本
+                        curl -L -# -o $LOCAL_BIN/jq "https://github.com/jqlang/jq/releases/download/jq-1.8.1/jq-linux-amd64"
+                        chmod +x $LOCAL_BIN/jq
+                        echo "✅ jq 下载完毕，版本："
+                        jq --version
                     else
-                        echo "jq 工具已就绪。"
+                        echo "✅ jq 工具已就绪。"
                     fi
                     '''
                 }
