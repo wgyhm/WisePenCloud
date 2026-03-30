@@ -1,0 +1,71 @@
+pipeline {
+    agent any
+
+    // 定义构建参数
+    parameters {
+        string(name: 'BRANCH_NAME', defaultValue: 'main', description: '选择需要构建的 Git 分支')
+        // 添加一个布尔型参数，默认不勾选 (false)
+        booleanParam(name: 'APPLY_PATCH', defaultValue: false, description: '⚠️ 是否需要应用 APISIX Nacos Lua 补丁并重启网关？(仅当补丁有修改时才需要勾选)')
+    }
+
+    stages {
+        stage('1. 拉取代码 (Checkout)') {
+            steps {
+                echo "开始拉取 ${params.BRANCH_NAME} 分支的部署脚本..."
+                checkout scm
+            }
+        }
+
+        stage('2. 环境检查与准备') {
+            steps {
+                script {
+                    // setup.sh 强依赖 jq，这里确保宿主机已安装
+                    sh '''
+                    if ! command -v jq &> /dev/null; then
+                        echo "系统缺失 jq，正在尝试自动安装..."
+                        # 根据你的操作系统选择合适的包管理器，如果宿主机无 root 权限，需提前手动装好 jq
+                        sudo apt-get update && sudo apt-get install -y jq || sudo yum install -y jq || echo "请手动安装 jq！"
+                    else
+                        echo "jq 工具已就绪。"
+                    fi
+                    '''
+                }
+            }
+        }
+
+        stage('3. 应用 APISIX 补丁 (Patch)') {
+            // 使用 when 指令：只有当构建参数 APPLY_PATCH 被勾选时，才会执行这个阶段
+            when {
+                expression { return params.APPLY_PATCH == true }
+            }
+            steps {
+                dir('deploy/gateway-apisix') {
+                    echo "检测到打补丁选项已开启，开始执行 patch.sh ..."
+                    sh "chmod +x patch.sh"
+                    sh "./patch.sh"
+                    echo "✅ 补丁应用完成，网关容器已重启。"
+                }
+            }
+        }
+
+        stage('4. 自动化注册路由 (Setup Routes)') {
+            steps {
+                dir('deploy/gateway-apisix') {
+                    echo "开始推送到 APISIX Admin API 注册全局插件与路由..."
+                    sh "chmod +x setup.sh"
+                    sh "./setup.sh"
+                    echo "✅ 路由配置同步完成。"
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "🎉 网关自动化部署流水线执行成功！"
+        }
+        failure {
+            echo "❌ 流水线执行失败，请检查脚本输出日志或确保 APISIX 服务存活！"
+        }
+    }
+}

@@ -10,7 +10,7 @@ pipeline {
         // 动态获取 Git 提交的简短哈希作为镜像版本 Tag
         IMAGE_TAG = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
         // 部署脚本的绝对或相对路径
-        COMPOSE_FILE_PATH = 'deploy/docker-compose-app.yml'
+        COMPOSE_FILE_PATH = 'deploy/jenkins/app/docker-compose-app.yml'
     }
 
     // 可选参数化构建，方便手动触发时选择分支

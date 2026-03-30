@@ -89,10 +89,8 @@ function register_route() {
       -d "$body"
 }
 
-# ================= 🚀 执行逻辑 =================
-
 echo "========================================="
-echo "   WisePen 网关自动化部署脚本"
+echo "   WisePen 网关部署脚本"
 echo "========================================="
 
 init_infrastructure
@@ -107,8 +105,26 @@ echo -e "\n-----------------------------------------"
 register_route 1 "auth-service" "/auth/*" "wisepen-user-service"
 register_route 2 "user-service" "/user/*" "wisepen-user-service"
 register_route 3 "group-service" "/group/*" "wisepen-user-service"
-# res-permission-service
-register_route 4 "res-permission-service" "/resource/*" "wisepen-res-permission-service"
+register_route 4 "resource-service" "/resource/*" "wisepen-resource-service"
+register_route 5 "file-storage-service" "/storage/*" "wisepen-file-storage-service"
+register_route 6 "document-service" "/document/*" "wisepen-document-service"
+register_route 7 "note-service" "/note/*" "wisepen-note-service"
+
+# note-collab-service 需要启用 WebSocket 支持，无法使用通用函数
+echo ">>> 注册路由 [note-collab-service] -> wisepen-note-collab-service (WebSocket)"
+curl -s -o /dev/null "${APISIX_ADMIN}/apisix/admin/routes/8" -X PUT \
+  -H "X-API-KEY: ${ADMIN_KEY}" \
+  -d '{
+    "name": "note-collab-service",
+    "uri": "/note-collab/*",
+    "enable_websocket": true,
+    "plugin_config_id": 1,
+    "upstream": {
+      "type": "chash",
+      "discovery_type": "nacos",
+      "service_name": "wisepen-note-collab-service"
+    }
+  }'
 
 echo -e "\n========================================="
 echo "所有配置已推送到 APISIX !"
