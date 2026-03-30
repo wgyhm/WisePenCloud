@@ -22,12 +22,12 @@ pipeline {
                     sh '''
                     if ! command -v jq &> /dev/null; then
                         echo "系统缺失 jq，正在下载独立二进制版本..."
-                        mkdir -p $LOCAL_BIN
+                        mkdir -p "$WORKSPACE/bin"
                         # 使用 GitHub 加速下载 jq 的 Linux amd64 版本
-                        curl -L -# -o $LOCAL_BIN/jq "https://github.com/jqlang/jq/releases/download/jq-1.8.1/jq-linux-amd64"
-                        chmod +x $LOCAL_BIN/jq
+                        curl -L -# -o "$WORKSPACE/bin/jq" "https://github.com/jqlang/jq/releases/download/jq-1.8.1/jq-linux-amd64"
+                        chmod +x "$WORKSPACE/bin/jq"
                         echo "✅ jq 下载完毕，版本："
-                        jq --version
+                        "$WORKSPACE/bin/jq" --version
                     else
                         echo "✅ jq 工具已就绪。"
                     fi
@@ -56,7 +56,11 @@ pipeline {
                 dir('deploy/gateway-apisix') {
                     echo "开始推送到 APISIX Admin API 注册全局插件与路由..."
                     sh "chmod +x setup.sh"
-                    sh "./setup.sh"
+                    withEnv([
+                        "PATH=${env.WORKSPACE}/bin:${env.PATH}",
+                    ]) {
+                        sh "./setup.sh"
+                    }
                     echo "✅ 路由配置同步完成。"
                 }
             }
