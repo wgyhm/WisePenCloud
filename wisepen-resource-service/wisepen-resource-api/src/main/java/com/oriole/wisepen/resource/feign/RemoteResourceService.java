@@ -1,7 +1,6 @@
 package com.oriole.wisepen.resource.feign;
 
 import com.oriole.wisepen.resource.domain.dto.ResourceCheckPermissionResDTO;
-import com.oriole.wisepen.resource.enums.ResPermissionLevelEnum;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import com.oriole.wisepen.common.core.domain.R;

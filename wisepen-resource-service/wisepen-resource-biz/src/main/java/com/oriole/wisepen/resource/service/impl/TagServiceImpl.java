@@ -10,6 +10,7 @@ import com.oriole.wisepen.resource.domain.dto.req.TagMoveRequest;
 import com.oriole.wisepen.resource.domain.dto.req.TagUpdateRequest;
 import com.oriole.wisepen.resource.domain.dto.res.TagTreeResponse;
 import com.oriole.wisepen.resource.domain.entity.TagEntity;
+import com.oriole.wisepen.resource.enums.ResourceAction;
 import com.oriole.wisepen.resource.exception.ResPermissionErrorCode;
 import com.oriole.wisepen.resource.repository.TagRepository;
 import com.oriole.wisepen.resource.service.IResourceService;
@@ -44,12 +45,16 @@ public class TagServiceImpl implements ITagService {
 
         TagEntity entity = new TagEntity();
         BeanUtil.copyProperties(tagCreateRequest, entity);
+        if (tagCreateRequest.getGrantedActions() != null) {
+            entity.setGrantedActionsMask(ResourceAction.actionsToPermissionCode(tagCreateRequest.getGrantedActions()));
+        }
         entity.setCreateTime(new Date());
 
         if (groupID.startsWith(ResourceConstants.PERSONAL_GROUP_PREFIX)){
             // 个人组标签不能设置标签权限
             entity.setVisibilityMode(null);
             entity.setSpecifiedUsers(null);
+            entity.setGrantedActionsMask(null);
         }
 
         // 计算祖先数组 (核心逻辑)
@@ -103,6 +108,9 @@ public class TagServiceImpl implements ITagService {
         if (tagUpdateRequest.getSpecifiedUsers() != null && !tagUpdateRequest.getSpecifiedUsers().equals(entity.getSpecifiedUsers())) {
             isPermissionChanged = true;
         }
+        if (tagUpdateRequest.getGrantedActions() != null && ResourceAction.actionsToPermissionCode(tagUpdateRequest.getGrantedActions()) != entity.getGrantedActionsMask()) {
+            isPermissionChanged = true;
+        }
 
         if (groupID.startsWith(ResourceConstants.PERSONAL_GROUP_PREFIX) && isPermissionChanged){
             throw new ServiceException(CANNOT_SET_VISIBILITY); // 个人组标签不能设置标签权限
@@ -110,6 +118,7 @@ public class TagServiceImpl implements ITagService {
 
         // 更新基本信息和权限策略
         BeanUtil.copyProperties(tagUpdateRequest, entity, CopyOptions.create().ignoreNullValue());
+        entity.setGrantedActionsMask(ResourceAction.actionsToPermissionCode(tagUpdateRequest.getGrantedActions()));
         entity.setUpdateTime(new Date());
 
         tagRepository.save(entity);

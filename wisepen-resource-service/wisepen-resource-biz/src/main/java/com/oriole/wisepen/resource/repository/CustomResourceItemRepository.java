@@ -3,7 +3,7 @@ package com.oriole.wisepen.resource.repository;
 import com.oriole.wisepen.common.core.domain.enums.GroupRoleType;
 import com.oriole.wisepen.common.core.domain.enums.list.QueryLogicEnum;
 import com.oriole.wisepen.resource.domain.entity.ResourceItemEntity;
-import com.oriole.wisepen.resource.enums.VisibilityModeEnum;
+import com.oriole.wisepen.resource.enums.VisibilityMode;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
@@ -63,18 +63,18 @@ public class CustomResourceItemRepository {
                         Criteria.where("ownerId").is(userId),
                         // 情况 B: 在用户所在的组内，模式为 ALL
                         Criteria.where("computedAcls").elemMatch(
-                                Criteria.where("groupId").in(groupId).and("visibilityMode").is(VisibilityModeEnum.ALL)
+                                Criteria.where("groupId").in(groupId).and("visibilityMode").is(VisibilityMode.ALL)
                         ),
                         // 情况 C: 模式为 WHITELIST，且用户在名单中
                         Criteria.where("computedAcls").elemMatch(
                                 Criteria.where("groupId").in(groupId)
-                                        .and("visibilityMode").in(VisibilityModeEnum.WHITELIST)
+                                        .and("visibilityMode").in(VisibilityMode.WHITELIST)
                                         .and("specifiedUsers").is(userId)
                         ),
                         // 情况 D: 模式为 BLACKLIST，且用户【不在】名单中
                         Criteria.where("computedAcls").elemMatch(
                                 Criteria.where("groupId").in(groupId)
-                                        .and("visibilityMode").is(VisibilityModeEnum.BLACKLIST)
+                                        .and("visibilityMode").is(VisibilityMode.BLACKLIST)
                                         .and("specifiedUsers").ne(userId)
                         )
                 );

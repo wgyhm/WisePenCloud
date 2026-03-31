@@ -12,21 +12,26 @@ import com.oriole.wisepen.resource.domain.GroupAcl;
 import com.oriole.wisepen.resource.domain.GroupTagBind;
 import com.oriole.wisepen.resource.domain.dto.*;
 import com.oriole.wisepen.resource.domain.dto.req.ResourceRenameRequest;
+import com.oriole.wisepen.resource.domain.dto.req.ResourceUpdateActionPermissionRequest;
 import com.oriole.wisepen.resource.domain.dto.req.ResourceUpdateTagsRequest;
 import com.oriole.wisepen.resource.domain.dto.res.ResourceItemResponse;
+import com.oriole.wisepen.resource.domain.entity.GroupResConfigEntity;
 import com.oriole.wisepen.resource.domain.entity.ResourceItemEntity;
 import com.oriole.wisepen.resource.domain.entity.TagEntity;
-import com.oriole.wisepen.resource.enums.ResPermissionLevelEnum;
-import com.oriole.wisepen.resource.enums.ResourceSortByEnum;
-import com.oriole.wisepen.resource.enums.VisibilityModeEnum;
+import com.oriole.wisepen.resource.enums.ResourceAccessRole;
+import com.oriole.wisepen.resource.enums.ResourceAction;
+import com.oriole.wisepen.resource.enums.ResourceSortBy;
+import com.oriole.wisepen.resource.enums.VisibilityMode;
 import com.oriole.wisepen.resource.exception.ResPermissionErrorCode;
 import com.oriole.wisepen.resource.repository.CustomResourceItemRepository;
+import com.oriole.wisepen.resource.repository.GroupResConfigRepository;
 import com.oriole.wisepen.resource.repository.ResourceItemRepository;
 import com.oriole.wisepen.resource.repository.TagRepository;
 import com.oriole.wisepen.resource.enums.FileOrganizationLogic;
 import com.oriole.wisepen.resource.service.IAclEventPublisher;
 import com.oriole.wisepen.resource.service.IGroupResService;
 import com.oriole.wisepen.resource.service.IResourceService;
+import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -51,6 +56,7 @@ public class ResourceServiceImpl implements IResourceService {
     private final TagRepository tagRepository;
     private final ResourceItemRepository resourceItemRepository;
     private final CustomResourceItemRepository customResourceItemRepository;
+    private final GroupResConfigRepository groupResConfigRepository;
     private final IAclEventPublisher aclEventPublisher;
     private final MongoTemplate mongoTemplate;
     private final IGroupResService groupResService;
@@ -138,11 +144,116 @@ public class ResourceServiceImpl implements IResourceService {
     }
 
     @Override
+    public void updateResourceActionPermission(ResourceUpdateActionPermissionRequest req){
+        ResourceItemEntity entity = resourceItemRepository.findById(req.getResourceId())
+                .orElseThrow(() -> new ServiceException(ResPermissionErrorCode.RESOURCE_NOT_FOUND));
+
+        // 前端传 null 代表清空覆盖规则，走默认群组标签规则 (下同)
+        if (req.getOverrideGrantedActions() != null) {
+            entity.setOverrideGrantedActionsMask(ResourceAction.actionsToPermissionCode(req.getOverrideGrantedActions()));
+        } else {
+            entity.setOverrideGrantedActionsMask(null);
+        }
+
+        if (req.getSpecifiedUsersGrantedActions() != null) {
+            Map<String, Integer> specifiedMaskMap = new HashMap<>();
+            req.getSpecifiedUsersGrantedActions().forEach((uid, actionsList) -> {
+                specifiedMaskMap.put(uid, ResourceAction.actionsToPermissionCode(actionsList));
+            });
+            entity.setSpecifiedUsersGrantedActionsMask(specifiedMaskMap);
+        } else {
+            entity.setSpecifiedUsersGrantedActionsMask(null);
+        }
+
+        entity.setUpdateTime(new Date());
+        resourceItemRepository.save(entity);
+    }
+
+    @Override
+    public ResourceItemResponse getResourceInfo(String resourceId, String userId, Map<Long, GroupRoleType> groupRoles) {
+        ResourceItemEntity entity = resourceItemRepository.findById(resourceId)
+                .orElseThrow(() -> new ServiceException(ResPermissionErrorCode.RESOURCE_NOT_FOUND));
+
+        // 预计算 ACL 快速鉴权 (拦截非法越权访问)
+        boolean canView = false;
+
+        // 如果用户被资源级的“指定用户特权”单独授权了 VIEW 动作
+        Integer userMask = entity.getSpecifiedUsersGrantedActionsMask() == null ? null: entity.getSpecifiedUsersGrantedActionsMask().get(userId);
+
+        if (userId.equals(entity.getOwnerId())) {
+            // 所有者直接放行
+            canView = true;
+        } else if (userMask != null && ResourceAction.hasAction(userMask, ResourceAction.VIEW)) {
+            // 如果用户被资源级的“指定用户特权”单独授权了 VIEW 动作
+            canView = true;
+        } else if (groupRoles != null && !groupRoles.isEmpty() && entity.getComputedAcls() != null) {
+            // 遍历预计算的 ACL 列表
+            for (GroupAcl acl : entity.getComputedAcls()) {
+                Long groupId = Long.valueOf(acl.getGroupId());
+                if (!groupRoles.containsKey(groupId)) continue;
+
+                GroupRoleType userRole = groupRoles.get(groupId);
+                // 群组管理员/所有者直接放行
+                if (userRole == GroupRoleType.ADMIN || userRole == GroupRoleType.OWNER) {
+                    canView = true;
+                    break;
+                }
+
+                // 校验基础可见性
+                boolean hasReadAuth = (acl.getVisibilityMode() == VisibilityMode.ALL ||
+                        (acl.getVisibilityMode() == VisibilityMode.WHITELIST && acl.getSpecifiedUsers().contains(userId)) ||
+                        (acl.getVisibilityMode() == VisibilityMode.BLACKLIST && !acl.getSpecifiedUsers().contains(userId)));
+
+                if (hasReadAuth) {
+                    canView = true;
+                    break;
+                }
+            }
+        }
+
+        // 彻底无权限，抛出异常阻断
+        if (!canView) {
+            throw new ServiceException(ResPermissionErrorCode.RESOURCE_PERMISSION_DENIED);
+        }
+
+        // 组装响应数据
+        ResourceItemResponse resp = new ResourceItemResponse();
+        BeanUtil.copyProperties(entity, resp);
+
+        // 处理标签回显
+        List<String> allTagIds = extractRelevantTagIds(entity, null);
+        Map<String, String> tagMap = new HashMap<>();
+        if (!allTagIds.isEmpty()) {
+            Iterable<TagEntity> tagEntities = tagRepository.findAllById(allTagIds);
+            for (TagEntity tag : tagEntities) {
+                tagMap.put(tag.getTagId(), tag.getTagName());
+            }
+        }
+        resp.setCurrentTags(tagMap);
+
+        if (userId.equals(entity.getOwnerId())) {
+            // 处理权限掩码解包
+            if (entity.getOverrideGrantedActionsMask() != null) {
+                resp.setOverrideGrantedActions(ResourceAction.permissionCodeToActions(entity.getOverrideGrantedActionsMask()));
+            }
+
+            if (entity.getSpecifiedUsersGrantedActionsMask() != null) {
+                Map<String, List<ResourceAction>> userActionsMap = new HashMap<>();
+                entity.getSpecifiedUsersGrantedActionsMask().forEach((uid, mask) -> {
+                    userActionsMap.put(uid, ResourceAction.permissionCodeToActions(mask));
+                });
+                resp.setSpecifiedUsersGrantedActions(userActionsMap);
+            }
+        }
+        return resp;
+    }
+
+    @Override
     public PageResult<ResourceItemResponse> listResources(String currentUserId,
                                                           String groupId, GroupRoleType userGroupRole,
                                                           List<String> tagIds, QueryLogicEnum tagQueryLogicMode,
                                                           String resourceType, int page, int size,
-                                                          ResourceSortByEnum sortBy, SortDirectionEnum sortDir) {
+                                                          ResourceSortBy sortBy, SortDirectionEnum sortDir) {
 
         Pageable pageable = PageRequest.of(page - 1, size, Sort.by(sortDir.toSpringDirection(), sortBy.getDbField()));
 
@@ -246,7 +357,8 @@ public class ResourceServiceImpl implements IResourceService {
 
     @Override
     public void afterTagNodeChanged(List<String> changedTagIds) {
-        if (changedTagIds == null || changedTagIds.isEmpty()) return;
+        if (changedTagIds == null || changedTagIds.isEmpty())
+            return;
 
         // 查询所有涉及的资源绑定记录
         List<ResourceItemEntity> affectedBinds = resourceItemRepository.findByTagIdsIn(changedTagIds);
@@ -303,34 +415,25 @@ public class ResourceServiceImpl implements IResourceService {
                 if (groupBind.getTagIds() == null || groupBind.getTagIds().isEmpty()) {
                     continue;
                 }
-
                 if (groupBind.getGroupId().startsWith(ResourceConstants.PERSONAL_GROUP_PREFIX)) {
                     continue; // 个人Tag不参与计算Acl
                 }
-
                 // 提取首标并查询
                 String primaryTagId = groupBind.getTagIds().getFirst();
                 TagEntity primaryTag = tagRepository.findById(primaryTagId).orElse(null);
 
                 if (primaryTag == null) continue;
 
-                // 溯源
-                TagEntity effectiveTag = findEffectiveTagWithPermission(primaryTag);
+                // 双维度溯源：可见性和动作权限分别从最近的有配置祖先节点捕获
+                // 加载当前组身份基线
+                Integer defaultActions = groupResConfigRepository.findByGroupId(groupBind.getGroupId())
+                        .map(GroupResConfigEntity::getDefaultMemberActionsMask)
+                        .orElse(ResourceAction.DEFAULT_MEMBER_ACTIONS);
+                ResolvedTagPermission resolved = resolveTagPermission(primaryTag, defaultActions);
 
-                // 装载该组的最终规则
-                if (effectiveTag != null) {
-                    finalGroupAcls.add(GroupAcl.builder()
-                            .groupId(groupBind.getGroupId())
-                            .visibilityMode(effectiveTag.getVisibilityMode())
-                            .specifiedUsers(effectiveTag.getSpecifiedUsers() != null ? effectiveTag.getSpecifiedUsers() : Collections.emptyList())
-                            .build());
-                } else {
-                    finalGroupAcls.add(GroupAcl.builder()
-                            .groupId(groupBind.getGroupId())
-                            .visibilityMode(VisibilityModeEnum.ALL)
-                            .specifiedUsers(Collections.emptyList())
-                            .build());
-                }
+                GroupAcl acl = GroupAcl.builder().groupId(groupBind.getGroupId()).build();
+                BeanUtil.copyProperties(resolved, acl);
+                finalGroupAcls.add(acl);
             }
         }
 
@@ -346,93 +449,175 @@ public class ResourceServiceImpl implements IResourceService {
         // 如果资源不存在（或已进入回收站），直接拒绝
         ResourceItemEntity entity = resourceItemRepository.findById(dto.getResourceId()).orElse(null);
         if (entity == null) {
-            return new ResourceCheckPermissionResDTO(ResPermissionLevelEnum.NONE);
+            return new ResourceCheckPermissionResDTO(ResourceAccessRole.NONE);
         }
-        // 如果是资源所有者，则直接有权限
+        // 资源所有者有全部权限
         if (dto.getUserId().equals(entity.getOwnerId())) {
-            return new ResourceCheckPermissionResDTO(ResPermissionLevelEnum.OWNER);
+            return new ResourceCheckPermissionResDTO(ResourceAccessRole.OWNER, null,
+                    ResourceAction.permissionCodeToActions(ResourceAction.ALL_ACTIONS));
         }
-        // 用户不在任何组，直接拒绝
-        if (dto.getGroupRoles() == null || dto.getGroupRoles().isEmpty()) {
-            return new ResourceCheckPermissionResDTO(ResPermissionLevelEnum.NONE);
+        // 提前提取用户定向特权掩码
+        Integer userMask = entity.getSpecifiedUsersGrantedActionsMask() == null ? null :
+                entity.getSpecifiedUsersGrantedActionsMask().get(dto.getUserId());
+        // 判断是否缺乏群组上下文（用户不在任何组 或 资源不在任何组）
+        boolean noGroupContext = (dto.getGroupRoles() == null || dto.getGroupRoles().isEmpty()) ||
+                (entity.getGroupBinds() == null || entity.getGroupBinds().isEmpty());
+        // 如果既没有群组上下文，也没有被单独赋予特权，直接拒绝
+        if (noGroupContext && userMask == null) {
+            return new ResourceCheckPermissionResDTO(ResourceAccessRole.NONE);
         }
-        // 资源不在任何组，直接拒绝
-        if (entity.getGroupBinds() == null || entity.getGroupBinds().isEmpty()) {
-            return new ResourceCheckPermissionResDTO(ResPermissionLevelEnum.NONE);
-        }
+        ResourceAccessRole resourceAccessRole = ResourceAccessRole.NONE;
+        Integer actionsMask = 0;
+        Set<String> permissionSources = new HashSet<>();
 
-        ResPermissionLevelEnum maxPermission = ResPermissionLevelEnum.NONE;
-        String finalSource = null;
+        // 计算群组权限 (如果有群组上下文的话)
+        if (!noGroupContext) {
+            // 遍历资源绑定的所有组
+            for (GroupTagBind groupBind : entity.getGroupBinds()) {
+                Long groupId = Long.valueOf(groupBind.getGroupId());
 
-        for (GroupTagBind groupBind : entity.getGroupBinds()) {
-            Long groupId = Long.valueOf(groupBind.getGroupId());
-            if (!dto.getGroupRoles().containsKey(groupId)) { // 用户不在该组，跳过
-                continue;
-            }
-            GroupRoleType userRoleInThisGroup = dto.getGroupRoles().get(groupId); // 组管理或所有者直接有权限
-            if (userRoleInThisGroup == GroupRoleType.ADMIN || userRoleInThisGroup == GroupRoleType.OWNER) {
-                return new ResourceCheckPermissionResDTO(ResPermissionLevelEnum.GROUP_ADMIN, groupBind.getGroupId());
-            } // 提前结束遍历
-
-            // 如果还没拿到更高权限，才需要去校验复杂的 Tag 权限
-            if (maxPermission.getLevel() < ResPermissionLevelEnum.GROUP_MEMBER.getLevel()) {
-                VisibilityModeEnum mode = VisibilityModeEnum.ALL; // 默认退化为全员可见
-                List<String> specifiedUsers = Collections.emptyList();
-
-                // 同组认首标 (取列表里的第一个 Tag)
-                String primaryTagId = groupBind.getTagIds().getFirst();
-                TagEntity primaryTag = tagRepository.findById(primaryTagId).orElse(null); // 查 Tag 节点
-                // 向上溯源找有效权限配置
-                TagEntity effectiveTag = findEffectiveTagWithPermission(primaryTag);
-                if (effectiveTag != null) {
-                    mode = effectiveTag.getVisibilityMode();
-                    specifiedUsers = effectiveTag.getSpecifiedUsers() != null ? effectiveTag.getSpecifiedUsers() : Collections.emptyList();
+                if (!dto.getGroupRoles().containsKey(groupId)) { // 用户不在该组，跳过
+                    continue;
                 }
+                GroupRoleType userRoleInThisGroup = dto.getGroupRoles().get(groupId);
+
+                // 用户是组管理员/拥有者，有全部权限
+                if (userRoleInThisGroup == GroupRoleType.ADMIN || userRoleInThisGroup == GroupRoleType.OWNER) {
+                    return new ResourceCheckPermissionResDTO(ResourceAccessRole.GROUP_ADMIN,
+                            new HashSet<>(Collections.singleton(groupBind.getGroupId())),
+                            ResourceAction.permissionCodeToActions(ResourceAction.ALL_ACTIONS));
+                }
+
+                // 提取首标并查询
+                String primaryTagId = groupBind.getTagIds().getFirst();
+                // 查询首标
+                TagEntity primaryTag = tagRepository.findById(primaryTagId).orElse(null);
+
+                // 可见性和动作权限分别从最近的有配置祖先节点捕获
+                // 加载当前组身份基线
+                Integer defaultActions = groupResConfigRepository.findByGroupId(groupBind.getGroupId())
+                        .map(GroupResConfigEntity::getDefaultMemberActionsMask)
+                        .orElse(ResourceAction.DEFAULT_MEMBER_ACTIONS);
+
+                ResolvedTagPermission resolved = resolveTagPermission(primaryTag, defaultActions);
 
                 // 判断是否有当前组的阅读权限
-                boolean hasReadAuth = (mode == VisibilityModeEnum.ALL ||
-                        (mode == VisibilityModeEnum.WHITELIST && specifiedUsers.contains(dto.getUserId())) ||
-                        (mode == VisibilityModeEnum.BLACKLIST && !specifiedUsers.contains(dto.getUserId())));
+                boolean hasReadAuth = (resolved.visibilityMode == VisibilityMode.ALL ||
+                        (resolved.visibilityMode == VisibilityMode.WHITELIST && resolved.specifiedUsers.contains(dto.getUserId())) ||
+                        (resolved.visibilityMode == VisibilityMode.BLACKLIST && !resolved.specifiedUsers.contains(dto.getUserId())));
 
                 if (hasReadAuth) {
-                    // 记录下 Member 权限，但不 return，继续看后面的组会不会让他变成 Admin
-                    maxPermission = ResPermissionLevelEnum.GROUP_MEMBER;
-                    finalSource = groupBind.getGroupId();
+                    // 只要有一个组能看，基础身份就是 Member
+                    if (resourceAccessRole == ResourceAccessRole.NONE) {
+                        resourceAccessRole = ResourceAccessRole.GROUP_MEMBER;
+                    }
+                    permissionSources.add(groupBind.getGroupId());
+                    // 应用标签策略
+                    actionsMask |= resolved.grantedActionsMask;
                 }
             }
         }
 
-        // 循环结束，返回找到的最高权限（可能是 GROUP_MEMBER，也可能是 NONE）
-        return new ResourceCheckPermissionResDTO(maxPermission, finalSource);
+        // 如果群组层面没有权限，且个人特权里没有 VIEW (阅读) 权限，则彻底拒绝
+        if (resourceAccessRole == ResourceAccessRole.NONE && (userMask == null || !ResourceAction.hasAction(userMask, ResourceAction.VIEW))) {
+            return new ResourceCheckPermissionResDTO(ResourceAccessRole.NONE);
+        }
+
+        // 应用资源级权限覆盖策略
+        // 优先级：定向用户特权 (userMask) > 全局覆盖 (Override) > 群组策略 (actionsMask)
+        actionsMask = entity.getOverrideGrantedActionsMask() == null ? actionsMask : entity.getOverrideGrantedActionsMask();
+
+        if (userMask != null) {
+            resourceAccessRole = ResourceAccessRole.OWNER_SPECIFIED;
+            actionsMask = userMask;
+            permissionSources.clear();
+        }
+
+        return new ResourceCheckPermissionResDTO(resourceAccessRole, permissionSources, ResourceAction.permissionCodeToActions(actionsMask));
     }
 
-    private TagEntity findEffectiveTagWithPermission(TagEntity node) {
-        if (node.getVisibilityMode() != null) {
-            return node; // 自己就有权限配置，直接返回
+    /**
+     * 标签权限溯源的聚合结果
+     * 可见性（visibilityMode + specifiedUsers）和动作权限（grantedActions）
+     * 是两个独立维度，可能来自标签树中不同层级的祖先节点
+     */
+    @Data
+    private static class ResolvedTagPermission {
+        VisibilityMode visibilityMode;
+        List<String> specifiedUsers = Collections.emptyList();
+        Integer grantedActionsMask;
+
+        boolean isVisibilityResolved() {
+            return visibilityMode != null;
         }
 
-        // 自己没有，通过 ancestors 向上找 (从后往前遍历 ancestors 数组，因为最后一个元素是直接父节点)
-        List<String> ancestors = node.getAncestors();
-        if (ancestors == null || ancestors.isEmpty()) {
-            return null; // 到达根节点且无配置
+        boolean isActionsResolved() {
+            return grantedActionsMask != null;
         }
 
-        // 一次性将所有祖先节点查出
-        Iterable<TagEntity> ancestorEntities = tagRepository.findAllById(ancestors);
-
-        Map<String, TagEntity> ancestorMap = new HashMap<>(); // 用 Map 建立 ID 索引
-        for (TagEntity entity : ancestorEntities) {
-            ancestorMap.put(entity.getTagId(), entity);
+        boolean isFullyResolved() {
+            return isVisibilityResolved() && isActionsResolved();
         }
+    }
 
-        for (int i = ancestors.size() - 1; i >= 0; i--) {
-            String ancestorId = ancestors.get(i);
-            TagEntity ancestorNode = ancestorMap.get(ancestorId);
-            // 避免TagEntity ancestorNode = tagRepository.findById(ancestorId).orElse(null);产生多次网络请求
-            if (ancestorNode != null && ancestorNode.getVisibilityMode() != null) {
-                return ancestorNode; // 找到了最近的一个带有配置的长辈节点
+    /**
+     * 单次向上遍历标签树，分别捕获可见性和动作权限两个维度最近的非空配置
+     */
+    private ResolvedTagPermission resolveTagPermission(TagEntity node, Integer defaultActions) {
+        ResolvedTagPermission result = new ResolvedTagPermission();
+
+        // 先尝试从当前节点捕获
+        capturePermission(result, node);
+
+        // 如果当前节点未能完全解析，且存在祖先节点，则向上溯源
+        if (!result.isFullyResolved()) {
+
+            List<String> ancestors = node.getAncestors();
+            if (ancestors != null && !ancestors.isEmpty()) {
+
+                // 批量查询祖先节点
+                Iterable<TagEntity> ancestorEntities = tagRepository.findAllById(ancestors);
+
+                Map<String, TagEntity> ancestorMap = new HashMap<>();
+                for (TagEntity entity : ancestorEntities) {
+                    ancestorMap.put(entity.getTagId(), entity); // 建立TagID与实体的映射
+                }
+
+                for (int i = ancestors.size() - 1; i >= 0; i--) { // 从 ancestors 列表的最后一个元素开始往回遍历到第一个元素
+                    TagEntity ancestorNode = ancestorMap.get(ancestors.get(i));
+                    if (ancestorNode != null) {
+                        capturePermission(result, ancestorNode);
+                        if (result.isFullyResolved())
+                            break; // 如果均捕获到，直接返回
+                    }
+                }
             }
         }
-        return null;
+
+        // 无论是根节点本身没配权限，还是遍历完所有祖先都没找到配置，都会在这里被安全拦截
+        // 如果未解析到动作权限，则使用默认动作权限
+        if (!result.isActionsResolved()) {
+            result.grantedActionsMask = defaultActions;
+        }
+        // 如果未解析到可见性，则使用默认可见性（ALL）
+        if (!result.isVisibilityResolved()) {
+            result.visibilityMode = VisibilityMode.ALL;
+        }
+
+        return result;
+    }
+
+    /**
+     * 将节点的权限配置按维度填入聚合结果，仅填充尚未解析的维度
+     */
+    private void capturePermission(ResolvedTagPermission result, TagEntity node) {
+        if (!result.isVisibilityResolved() && node.getVisibilityMode() != null) {
+            result.visibilityMode = node.getVisibilityMode();
+            result.specifiedUsers = node.getSpecifiedUsers() != null ? node.getSpecifiedUsers()
+                    : Collections.emptyList();
+        }
+        if (!result.isActionsResolved() && (node.getGrantedActionsMask() != null)) {
+            result.grantedActionsMask = node.getGrantedActionsMask();
+        }
     }
 }

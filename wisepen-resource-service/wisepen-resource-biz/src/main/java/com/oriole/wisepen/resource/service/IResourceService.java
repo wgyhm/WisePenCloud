@@ -6,11 +6,13 @@ import com.oriole.wisepen.common.core.domain.enums.list.QueryLogicEnum;
 import com.oriole.wisepen.common.core.domain.enums.list.SortDirectionEnum;
 import com.oriole.wisepen.resource.domain.dto.*;
 import com.oriole.wisepen.resource.domain.dto.req.ResourceRenameRequest;
+import com.oriole.wisepen.resource.domain.dto.req.ResourceUpdateActionPermissionRequest;
 import com.oriole.wisepen.resource.domain.dto.req.ResourceUpdateTagsRequest;
 import com.oriole.wisepen.resource.domain.dto.res.ResourceItemResponse;
-import com.oriole.wisepen.resource.enums.ResourceSortByEnum;
+import com.oriole.wisepen.resource.enums.ResourceSortBy;
 
 import java.util.List;
+import java.util.Map;
 
 public interface IResourceService {
 
@@ -22,11 +24,15 @@ public interface IResourceService {
 
     void updateResourceTags(ResourceUpdateTagsRequest req);
 
+    void updateResourceActionPermission(ResourceUpdateActionPermissionRequest req);
+
+    ResourceItemResponse getResourceInfo(String resourceId, String userId, Map<Long, GroupRoleType> groupRoles);
+
     PageResult<ResourceItemResponse> listResources(String currentUserId,
                                                    String groupId, GroupRoleType userGroupRole,
                                                    List<String> tagIds, QueryLogicEnum tagQueryLogicMode,
                                                    String resourceType, int page, int size,
-                                                   ResourceSortByEnum sortBy, SortDirectionEnum sortDir);
+                                                   ResourceSortBy sortBy, SortDirectionEnum sortDir);
 
     // 内部：标签节点变更后、标签节点删除后（权限重新计算/移除标签）；权限重新计算
     void afterTagNodeChanged(List<String> changedTagIds);

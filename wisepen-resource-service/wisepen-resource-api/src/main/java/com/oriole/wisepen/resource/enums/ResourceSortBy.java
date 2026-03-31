@@ -3,7 +3,7 @@ package com.oriole.wisepen.resource.enums;
 import lombok.Getter;
 
 @Getter
-public enum ResourceSortByEnum {
+public enum ResourceSortBy {
     UPDATE_TIME("updateTime"),
     CREATE_TIME("createTime"),
     NAME("resourceName"),
@@ -12,7 +12,7 @@ public enum ResourceSortByEnum {
     // 对应的 MongoDB 实体字段名
     private final String dbField;
 
-    ResourceSortByEnum(String dbField) {
+    ResourceSortBy(String dbField) {
         this.dbField = dbField;
     }
 }

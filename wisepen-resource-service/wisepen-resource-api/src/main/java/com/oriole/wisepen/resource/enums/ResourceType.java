@@ -20,12 +20,10 @@ import java.util.Map;
  * 注意：哪些类型允许上传、哪些类型需要格式转换，属于各业务微服务自身的策略，
  * 不在此枚举中声明。
  * </p>
- *
- * @author Ian.xiong
  */
 @Getter
 @AllArgsConstructor
-public enum ResourceTypeEnum {
+public enum ResourceType {
 
     /** 无扩展名的笔记，由笔记服务管理，不经过文件上传流程 */
     NOTE("note"),
@@ -42,10 +40,10 @@ public enum ResourceTypeEnum {
     @JsonValue
     private final String extension;
 
-    private static final Map<String, ResourceTypeEnum> EXT_MAP = new HashMap<>();
+    private static final Map<String, ResourceType> EXT_MAP = new HashMap<>();
 
     static {
-        for (ResourceTypeEnum e : values()) {
+        for (ResourceType e : values()) {
             EXT_MAP.put(e.extension, e);
         }
     }
@@ -57,7 +55,7 @@ public enum ResourceTypeEnum {
      * @return 对应枚举值，不支持时返回 {@code null}
      */
     @JsonCreator
-    public static ResourceTypeEnum fromExtension(String ext) {
+    public static ResourceType fromExtension(String ext) {
         if (ext == null) {
             return null;
         }

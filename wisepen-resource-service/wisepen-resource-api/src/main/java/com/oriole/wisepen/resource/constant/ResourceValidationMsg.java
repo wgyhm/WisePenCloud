@@ -5,7 +5,7 @@ public interface ResourceValidationMsg {
     String RESOURCE_ID_NOT_BLANK = "资源ID不能为空";
     String RESOURCE_NAME_NOT_BLANK = "资源名称不能为空";
     String RESOURCE_NEW_NAME_NOT_BLANK = "资源新名称不能为空";
-    String RESOURCE_TYPE_NOT_BLANK = "资源类型不能为空";
+    String RESOURCE_TYPE_NOT_NULL = "资源类型不能为空";
     String OWNER_ID_NOT_BLANK = "资源所有者ID不能为空";
     String USER_ID_NOT_BLANK = "用户ID不能为空";
     String USER_GROUP_ROLES_NOT_NULL = "用户组-角色表不能为null";

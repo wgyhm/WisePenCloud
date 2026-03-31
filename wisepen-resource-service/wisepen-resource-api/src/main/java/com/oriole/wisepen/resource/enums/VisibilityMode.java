@@ -10,7 +10,7 @@ import lombok.Getter;
  */
 @Getter
 @AllArgsConstructor
-public enum VisibilityModeEnum {
+public enum VisibilityMode {
 
     ALL(0),
     ONLY_ADMIN(1),

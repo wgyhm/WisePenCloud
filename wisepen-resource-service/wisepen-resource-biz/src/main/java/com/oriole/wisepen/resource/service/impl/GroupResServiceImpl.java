@@ -4,9 +4,11 @@ import com.oriole.wisepen.resource.domain.dto.req.GroupResConfigUpdateRequest;
 import com.oriole.wisepen.resource.domain.dto.res.GroupResConfigResponse;
 import com.oriole.wisepen.resource.domain.entity.GroupResConfigEntity;
 import com.oriole.wisepen.resource.enums.FileOrganizationLogic;
+import com.oriole.wisepen.resource.enums.ResourceAction;
 import com.oriole.wisepen.resource.repository.GroupResConfigRepository;
 import com.oriole.wisepen.resource.service.IGroupResService;
-import com.oriole.wisepen.resource.service.ITagService;
+
+import cn.hutool.core.bean.BeanUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.mongodb.core.MongoTemplate;
@@ -15,6 +17,7 @@ import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Service;
 
 import java.util.Date;
+import java.util.List;
 
 @Slf4j
 @Service
@@ -28,21 +31,17 @@ public class GroupResServiceImpl implements IGroupResService {
 
     @Override
     public GroupResConfigResponse getGroupResConfig(String groupId) {
-        FileOrganizationLogic logic = configRepository.findByGroupId(groupId)
-                .map(GroupResConfigEntity::getFileOrgLogic)
-                .orElse(FileOrganizationLogic.FOLDER);
-        return new GroupResConfigResponse(groupId, logic);
+        GroupResConfigEntity entity = configRepository.findByGroupId(groupId).orElse(null);
+
+        FileOrganizationLogic fileOrgLogic = entity != null ? entity.getFileOrgLogic() : FileOrganizationLogic.FOLDER;
+        List<ResourceAction> defaultMemberActions = ResourceAction.permissionCodeToActions(entity != null ? entity.getDefaultMemberActionsMask() : ResourceAction.DEFAULT_MEMBER_ACTIONS);
+
+        return new GroupResConfigResponse(groupId, fileOrgLogic, defaultMemberActions);
     }
 
     @Override
     public void upsertGroupResConfig(GroupResConfigUpdateRequest req) {
-        GroupResConfigEntity entity = configRepository.findByGroupId(req.getGroupId())
-                .orElseGet(() -> {
-                    GroupResConfigEntity newEntity = new GroupResConfigEntity();
-                    newEntity.setGroupId(req.getGroupId());
-                    return newEntity;
-                });
-        entity.setFileOrgLogic(req.getFileOrgLogic());
+        GroupResConfigEntity entity = BeanUtil.copyProperties(req, GroupResConfigEntity.class);
         entity.setUpdateTime(new Date());
         configRepository.save(entity);
     }

@@ -1,6 +1,6 @@
 package com.oriole.wisepen.resource.domain;
 
-import com.oriole.wisepen.resource.enums.VisibilityModeEnum;
+import com.oriole.wisepen.resource.enums.VisibilityMode;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -14,6 +14,7 @@ import java.util.List;
 @AllArgsConstructor
 public class GroupAcl {
     private String groupId;
-    private VisibilityModeEnum visibilityMode;
+    private VisibilityMode visibilityMode;
     private List<String> specifiedUsers;
+    private Integer grantedActionsMask;
 }

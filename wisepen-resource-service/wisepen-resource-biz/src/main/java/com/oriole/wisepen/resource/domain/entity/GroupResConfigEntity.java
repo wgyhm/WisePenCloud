@@ -20,6 +20,9 @@ public class GroupResConfigEntity {
 
     private FileOrganizationLogic fileOrgLogic;
 
+    /** 该小组 MEMBER 角色的默认权限掩码，null 时回退为 ResourceActionEnum.DEFAULT_MEMBER_ACTIONS */
+    private Integer defaultMemberActionsMask;
+
     private Date updateTime;
 
     /** 小组解散时间，非 null 表示已解散；定时任务据此判断是否到期硬删*/

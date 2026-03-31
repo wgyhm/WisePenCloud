@@ -2,7 +2,8 @@ package com.oriole.wisepen.resource.domain.dto.req;
 
 import com.oriole.wisepen.resource.constant.ResourceValidationMsg;
 import com.oriole.wisepen.resource.domain.base.TagSpaceBase;
-import com.oriole.wisepen.resource.enums.VisibilityModeEnum;
+import com.oriole.wisepen.resource.enums.ResourceAction;
+import com.oriole.wisepen.resource.enums.VisibilityMode;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -19,6 +20,7 @@ public class TagCreateRequest extends TagSpaceBase {
 
     private String tagDesc;
 
-    private VisibilityModeEnum visibilityMode;
+    private VisibilityMode visibilityMode;
     private List<String> specifiedUsers;
+    private List<ResourceAction> grantedActions;
 }

@@ -10,6 +10,7 @@ import org.springframework.data.mongodb.core.mapping.Document;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 
 @EqualsAndHashCode(callSuper = true)
 @Data
@@ -20,6 +21,9 @@ public class ResourceItemEntity extends ResourceItemInfoBase {
 
     private List<GroupTagBind> groupBinds = new ArrayList<>();
     private List<GroupAcl> computedAcls;
+
+    private Integer overrideGrantedActionsMask;
+    private Map<String, Integer> specifiedUsersGrantedActionsMask;
 
     private Date createTime;
     private Date updateTime;
