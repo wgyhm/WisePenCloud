@@ -115,6 +115,25 @@ services:
     networks:
       - cloud-net
 
+  note-service:
+    image: ${DOCKER_REGISTRY}/wisepencloud-note:${APP_VERSION}
+    container_name: wisepen-note-service
+    restart: always
+    environment:
+      - TZ=Asia/Shanghai
+      - SPRING_PROFILES_ACTIVE=prod
+      - SPRING_CLOUD_NACOS_DISCOVERY_SERVER_ADDR=nacos:8848
+      - SPRING_CLOUD_NACOS_CONFIG_SERVER_ADDR=nacos:8848
+      - OTEL_SERVICE_NAME=wisepen-note-service
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
+      - SPRING_CLOUD_INETUTILS_PREFERRED_NETWORKS=
+      - NACOS_USERNAME=${NACOS_USERNAME}
+      - NACOS_PASSWORD=${NACOS_PASSWORD}
+    volumes:
+      - ../logs/system:/logs
+    networks:
+      - cloud-net
+
 networks:
   cloud-net:
     external: true
