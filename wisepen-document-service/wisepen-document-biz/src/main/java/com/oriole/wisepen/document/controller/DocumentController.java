@@ -42,23 +42,10 @@ public class DocumentController {
         return R.ok();
     }
 
-    /**
-     * 获取带双层水印的预览 PDF（支持 HTTP Range 请求）。
-     *
-     * <p>采用 O(1) 预埋 + 增量更新模式：
-     * <ul>
-     *   <li>虚拟文件 = OSS 原始预埋 PDF + 动态水印附录（约 10 KB）。</li>
-     *   <li>Range 落在原始段：零内存管道透传 OSS，不加载整个 PDF。</li>
-     *   <li>Range 落在附录段：内存生成 ~10 KB 增量附录（含真实 userId + 时间戳）后切片返回。</li>
-     * </ul>
-     *
-     * <p>明水印：userId + 预览时间戳，45° 斜向；暗水印：AES-128 二值矩阵 9×9 平铺，透明度 1%。<br>
-     * 仅 {@code READY} 状态的文档可预览。
-     */
     @GetMapping("/getDocPreview")
-    public void preview(@RequestParam String documentId,
-                        HttpServletRequest request,
-                        HttpServletResponse response) {
+    public void previewDocument(@RequestParam String documentId,
+                                HttpServletRequest request,
+                                HttpServletResponse response) {
         String userId = String.valueOf(SecurityContextHolder.getUserId());
         documentPreviewService.handlePreviewRequest(request, response, documentId, userId);
     }
@@ -67,11 +54,10 @@ public class DocumentController {
      * 删除文档或取消上传。
      * <p>
      * 在任意阶段均可调用：上传中（取消上传）、转换中（异步退出）、已就绪（删除）。
-     * 调用方须已通过鉴权中间件的身份校验。
      * </p>
      */
-    @PostMapping("/deletedDoc")
-    public R<Void> cancelOrDelete(@RequestParam String documentId) {
+    @PostMapping("/removeDoc")
+    public R<Void> cancelOrDeleteDocument(@RequestParam String documentId) {
         documentService.cancelOrDeleteDocument(documentId);
         return R.ok();
     }

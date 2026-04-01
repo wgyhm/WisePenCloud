@@ -2,7 +2,7 @@ package com.oriole.wisepen.document.domain.entity;
 
 import com.baomidou.mybatisplus.annotation.*;
 import com.oriole.wisepen.document.api.domain.base.DocumentInfoBase;
-import com.oriole.wisepen.resource.enums.ResourceTypeEnum;
+import com.oriole.wisepen.resource.enums.ResourceType;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
@@ -25,7 +25,7 @@ public class DocumentInfoEntity extends DocumentInfoBase {
      * 本服务处理流水线根据 {@link com.oriole.wisepen.document.api.constant.DocumentConstants#OFFICE_TYPES}
      * 决定是否执行 Office→PDF 转换。
      */
-    private ResourceTypeEnum fileType;
+    private ResourceType fileType;
 
     /**
      * 前端申报的文件大小（字节），用于计算上传超时阈值。

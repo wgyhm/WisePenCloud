@@ -9,7 +9,6 @@ import com.oriole.wisepen.document.api.domain.dto.req.DocumentUploadInitRequest;
 import com.oriole.wisepen.document.api.domain.dto.res.DocumentUploadInitResponse;
 import com.oriole.wisepen.document.api.domain.mq.DocumentParseTaskMessage;
 import com.oriole.wisepen.document.api.enums.DocumentStatusEnum;
-import com.oriole.wisepen.document.domain.entity.DocumentContentEntity;
 import com.oriole.wisepen.document.domain.entity.DocumentInfoEntity;
 import com.oriole.wisepen.document.exception.DocumentErrorCode;
 import com.oriole.wisepen.document.mapper.DocumentInfoMapper;
@@ -22,7 +21,7 @@ import com.oriole.wisepen.file.storage.api.domain.dto.UploadInitRespDTO;
 import com.oriole.wisepen.file.storage.api.enums.StorageSceneEnum;
 import com.oriole.wisepen.file.storage.api.feign.RemoteStorageService;
 import com.oriole.wisepen.resource.domain.dto.ResourceCreateReqDTO;
-import com.oriole.wisepen.resource.enums.ResourceTypeEnum;
+import com.oriole.wisepen.resource.enums.ResourceType;
 import com.oriole.wisepen.resource.feign.RemoteResourceService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -51,7 +50,7 @@ public class DocumentServiceImpl implements IDocumentService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public DocumentUploadInitResponse initUploadDocument(DocumentUploadInitRequest request, Long uploaderId) {
-        ResourceTypeEnum fileType = ResourceTypeEnum.fromExtension(request.getExtension());
+        ResourceType fileType = ResourceType.fromExtension(request.getExtension());
         if (fileType == null || !DocumentConstants.ALLOWED_TYPES.contains(fileType)) {
             throw new ServiceException(DocumentErrorCode.DOCUMENT_TYPE_NOT_ALLOWED);
         }
@@ -59,7 +58,7 @@ public class DocumentServiceImpl implements IDocumentService {
         // 向 resource 服务注册资源占位，返回的 resourceId 即作为本文档的唯一 ID
         R<String> resourceR = remoteResourceService.createResource(ResourceCreateReqDTO.builder()
                 .resourceName(request.getFilename())
-                .resourceType(fileType.getExtension().toUpperCase())
+                .resourceType(fileType)
                 .ownerId(String.valueOf(uploaderId))
                 .size(request.getSize())
                 .build());
@@ -157,9 +156,7 @@ public class DocumentServiceImpl implements IDocumentService {
             contentRepository.deleteById(doc.getTextMongoId());
         }
 
-        // @TableLogic 保证此处执行逻辑删除（设置 is_deleted=1）
         documentInfoMapper.deleteById(documentId);
-
         log.info("文档已删除/取消: documentId={}", documentId);
     }
 

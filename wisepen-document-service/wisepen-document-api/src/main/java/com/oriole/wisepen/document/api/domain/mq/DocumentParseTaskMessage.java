@@ -1,6 +1,6 @@
 package com.oriole.wisepen.document.api.domain.mq;
 
-import com.oriole.wisepen.resource.enums.ResourceTypeEnum;
+import com.oriole.wisepen.resource.enums.ResourceType;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -28,5 +28,5 @@ public class DocumentParseTaskMessage implements Serializable {
     private String sourceObjectKey;
 
     /** 文件类型 */
-    private ResourceTypeEnum fileType;
+    private ResourceType fileType;
 }
