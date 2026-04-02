@@ -5,6 +5,10 @@ CONTAINER_NAME="apisix" # 容器名
 APISIX_ADMIN="http://${CONTAINER_NAME}:9180"
 ADMIN_KEY="edd1c9f034335f136f87ad84b625c8f1"
 
+# 接收 Jenkins 传入的 CORS 正则数组
+# 默认值保留为本地开发的正则表达式
+export CORS_REGEX_JSON=${CORS_REGEX_JSON:-'["^http://localhost:\\d+$", "^http://127\\.0\\.0\\.1:\\d+$"]'}
+
 # 全局模版
 TPL_ID_GLOBAL=1
 
@@ -39,10 +43,18 @@ function init_infrastructure() {
         --argjson script_route "$LUA_ROUTE" \
         --argjson script_auth "$LUA_AUTH" \
         '{
-            desc: "WisePen Global Template (Monitor + Routing + Auth)",
+            desc: "WisePen Global Template (Monitor + Routing + Auth + CORS)",
             plugins: {
                 "prometheus": {},
                 "opentelemetry": {},
+                "cors": {
+                    "allow_origins_by_regex": $cors_regex_arr,
+                    "allow_methods": "**",
+                    "allow_headers": "**",
+                    "expose_headers": "Accept-Ranges,Content-Range,Content-Length",
+                    "allow_credential": true,
+                    "max_age": 3600
+                },
                 "serverless-pre-function": {
                     "phase": "rewrite",
                     "functions": [$script_route, $script_auth]

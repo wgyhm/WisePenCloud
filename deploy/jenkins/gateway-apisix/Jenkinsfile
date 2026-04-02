@@ -5,7 +5,12 @@ pipeline {
     parameters {
         string(name: 'BRANCH_NAME', defaultValue: 'main', description: '选择需要构建的 Git 分支')
         // 添加一个布尔型参数，默认不勾选 (false)
-        booleanParam(name: 'APPLY_PATCH', defaultValue: false, description: '⚠️ 是否需要应用 APISIX Nacos Lua 补丁并重启网关？(仅当补丁有修改时才需要勾选)')
+        booleanParam(name: 'APPLY_PATCH', defaultValue: false, description: '是否需要应用 APISIX Nacos Lua 补丁并重启网关？(仅当补丁有修改时才需要勾选)')
+        text(name: 'CORS_REGEX_PARAM', defaultValue: '''["^http://localhost:\\d+$", "^http://127\\.0\\.0\\.1:\\d+$"]''', description: 'APISIX 网关的跨域允许 Origin 列表（必须是合法的 JSON 数组格式）')
+    }
+
+    environment {
+        CORS_REGEX_JSON = "${params.CORS_REGEX_PARAM}"
     }
 
     stages {
