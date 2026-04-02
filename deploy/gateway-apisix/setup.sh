@@ -62,7 +62,7 @@ function init_infrastructure() {
                 }
             }
         }')
-    local RESPONSE=$(curl -s -w "\n%{http_code}" "${APISIX_ADMIN}/apisix/admin/plugin_configs/${TPL_ID_GLOBAL}" -X PUT \
+    local RESPONSE=$(curl -s --noproxy "*" -w "\n%{http_code}" "${APISIX_ADMIN}/apisix/admin/plugin_configs/${TPL_ID_GLOBAL}" -X PUT \
           -H "X-API-KEY: ${ADMIN_KEY}" \
           -d "$body_global")
     local HTTP_BODY=$(echo "$RESPONSE" | sed '$d')
@@ -104,9 +104,14 @@ function register_route() {
             }
         }')
 
-    curl -s -o /dev/null "${APISIX_ADMIN}/apisix/admin/routes/${ID}" -X PUT \
+    local HTTP_STATUS=$(curl -s --noproxy "*" -w "%{http_code}" -o /dev/null "${APISIX_ADMIN}/apisix/admin/routes/${ID}" -X PUT \
       -H "X-API-KEY: ${ADMIN_KEY}" \
-      -d "$body"
+      -d "$body")
+
+    if [ "$HTTP_STATUS" -lt 200 ] || [ "$HTTP_STATUS" -ge 300 ]; then
+        echo "❌ [Error] 路由 [$NAME] 注册失败！状态码: ${HTTP_STATUS}"
+        exit 1
+    fi
 }
 
 echo "========================================="
