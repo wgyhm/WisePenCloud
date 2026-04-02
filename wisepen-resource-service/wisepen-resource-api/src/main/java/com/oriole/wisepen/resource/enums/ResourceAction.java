@@ -21,6 +21,33 @@ public enum ResourceAction {
 
     private final int code;
 
+    public int getImpliedMask() {
+        int mask = this.code;
+        switch (this) {
+            case EDIT:
+                // 编辑 必须包含 阅读和可见
+                mask |= VIEW.code | DISCOVER.code;
+                break;
+            case DOWNLOAD_ORIGINAL:
+                // 下载源文件 必须包含 带水印下载、阅读和可见
+                mask |= DOWNLOAD_WATERMARK.code | VIEW.code | DISCOVER.code;
+                break;
+            case DOWNLOAD_WATERMARK:
+                // 下载带水印 必须包含 阅读和可见
+                mask |= VIEW.code | DISCOVER.code;
+                break;
+            case VIEW:
+                // 阅读 必须包含 可见
+                mask |= DISCOVER.code;
+                break;
+            case DISCOVER:
+                // 列表可见 是最底层的，不隐含其他权限
+            default:
+                break;
+        }
+        return mask;
+    }
+
     // 将权限掩码解析为枚举列表
     public static List<ResourceAction> permissionCodeToActions(int permissionCode) {
         return Arrays.stream(values())
@@ -35,7 +62,7 @@ public enum ResourceAction {
             return 0;
         }
         return actions.stream()
-                .mapToInt(ResourceAction::getCode)
+                .mapToInt(ResourceAction::getImpliedMask)
                 // 使用按位或(|)合并所有权限
                 .reduce(0, (a, b) -> a | b);
     }
