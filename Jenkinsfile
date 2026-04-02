@@ -10,7 +10,7 @@ pipeline {
         // 动态获取 Git 提交的简短哈希作为镜像版本 Tag
         IMAGE_TAG = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
         // 部署脚本的绝对或相对路径
-        COMPOSE_FILE_PATH = 'deploy/jenkins/app/docker-compose-app.yml'
+        COMPOSE_FILE_PATH = 'docker-compose-app.yml'
     }
 
     // 可选参数化构建，方便手动触发时选择分支
@@ -153,12 +153,8 @@ pipeline {
                     export NACOS_PASSWORD=\${NACOS_PWD}
 
                     # 启动部署
-                    cd deploy/app/
                     docker-compose -f docker-compose-app.yml up -d --remove-orphans
                     """
-
-                    // 通过 Python 脚本远程部署到其他服务器
-                    // sh "python3 deploy/dev-tools/remote_deploy.py --tag ${IMAGE_TAG} --registry ${DOCKER_REGISTRY}"
                 }
             }
         }
