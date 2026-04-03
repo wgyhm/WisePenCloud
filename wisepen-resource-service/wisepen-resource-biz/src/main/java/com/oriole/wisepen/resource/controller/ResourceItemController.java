@@ -7,7 +7,6 @@ import com.oriole.wisepen.common.core.domain.R;
 import com.oriole.wisepen.common.core.domain.enums.GroupRoleType;
 import com.oriole.wisepen.common.core.domain.enums.list.QueryLogicEnum;
 import com.oriole.wisepen.common.core.domain.enums.list.SortDirectionEnum;
-import com.oriole.wisepen.common.core.exception.ServiceException;
 import com.oriole.wisepen.common.security.annotation.CheckLogin;
 import com.oriole.wisepen.resource.constant.ResourceConstants;
 import com.oriole.wisepen.resource.domain.dto.req.ResourceUpdateActionPermissionRequest;
@@ -15,7 +14,6 @@ import com.oriole.wisepen.resource.domain.dto.res.ResourceItemResponse;
 import com.oriole.wisepen.resource.domain.dto.req.ResourceRenameRequest;
 import com.oriole.wisepen.resource.domain.dto.req.ResourceUpdateTagsRequest;
 import com.oriole.wisepen.resource.enums.ResourceSortBy;
-import com.oriole.wisepen.resource.exception.ResPermissionErrorCode;
 import com.oriole.wisepen.resource.service.IResourceService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -25,7 +23,6 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Map;
 
 @Tag(name = "资源管理", description = "资源重命名、更新资源标签与列出资源")
 @RestController
@@ -42,6 +39,18 @@ public class ResourceItemController {
     public R<Void> renameResource(@Validated @RequestBody ResourceRenameRequest req) {
         resourceService.assertResourceOwner(req.getResourceId(), SecurityContextHolder.getUserId().toString());
         resourceService.renameResource(req);
+        return R.ok();
+    }
+
+    // 删除资源
+    @Operation(summary = "删除资源", description = "用户删除资源")
+    @PostMapping("/removeResources")
+    public R<Void> deleteResource(@RequestParam List<String> resourceIds) {
+        String currentUserId = SecurityContextHolder.getUserId().toString();
+        for (String resourceId : resourceIds) {
+            resourceService.assertResourceOwner(resourceId, currentUserId);
+        }
+        resourceService.softRemoveResources(resourceIds);
         return R.ok();
     }
 

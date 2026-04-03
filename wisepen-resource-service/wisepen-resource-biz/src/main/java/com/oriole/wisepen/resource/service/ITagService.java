@@ -23,7 +23,11 @@ public interface ITagService {
     void updateTag(TagUpdateRequest tagUpdateRequest);
 
     // 级联删除 Tag 及其所有子孙节点
-    void deleteTag(TagDeleteRequest tagDeleteRequest);
+    void deleteTag(TagDeleteRequest tagDeleteRequest, Boolean forceDelete);
+
+    // 判断节点是否属于回收站
+    enum TagType { IN_TRASH, TRASH, NOT_IN_TRASH }
+    TagType isNodeInTrash(String groupId, String targetParentId);
 
     // 小组解散时软删除该组下所有 Tag
     void softRemoveAllTagByGroupId(String groupId);

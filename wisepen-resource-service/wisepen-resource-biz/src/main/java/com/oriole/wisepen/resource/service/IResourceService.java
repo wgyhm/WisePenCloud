@@ -32,10 +32,12 @@ public interface IResourceService {
                                                    String resourceType, int page, int size,
                                                    ResourceSortBy sortBy, SortDirectionEnum sortDir);
 
-    // 内部：标签节点变更后、标签节点删除后（权限重新计算/移除标签）；权限重新计算
-    void afterTagNodeChanged(List<String> changedTagIds);
+    void softRemoveResources(List<String> resourceIds);
 
-    void afterTagNodeDeleted(List<String> deletedTagIds, Boolean isPersonalTag);
+    // 内部：标签节点变更后、标签节点删除后（权限重新计算/移除标签）；权限重新计算
+    void afterTagNodeChanged(List<String> changedTagIds, Boolean isPersonalTag);
+
+    void afterTagNodeDeleted(List<String> deletedTagIds, Boolean isPersonalTag, Boolean isPathTag);
 
     void calculateResourceGroupAcl(String resourceId);
 
@@ -43,11 +45,13 @@ public interface IResourceService {
 
     String createResourceItem(ResourceCreateReqDTO dto);
 
-    void softRemoveResourceItem(String resourceId);
+    void hardRemoveResources(List<String> resourceIds);
 
     void updateResourceAttributes(ResourceUpdateReqDTO dto);
 
     ResourceItemResponse getResourceInfo(ResourceInfoGetReqDTO dto);
 
     ResourceCheckPermissionResDTO checkPermission(ResourceCheckPermissionReqDTO dto);
+
+    void stripGroupPermission(List<String> trashedTagIds);
 }

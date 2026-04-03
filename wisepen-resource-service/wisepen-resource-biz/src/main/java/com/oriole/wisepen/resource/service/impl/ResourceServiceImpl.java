@@ -7,6 +7,7 @@ import com.oriole.wisepen.common.core.domain.enums.GroupRoleType;
 import com.oriole.wisepen.common.core.domain.enums.list.QueryLogicEnum;
 import com.oriole.wisepen.common.core.domain.enums.list.SortDirectionEnum;
 import com.oriole.wisepen.common.core.exception.ServiceException;
+import com.oriole.wisepen.resource.constant.MqTopicConstants;
 import com.oriole.wisepen.resource.constant.ResourceConstants;
 import com.oriole.wisepen.resource.domain.ComputedGroupAcl;
 import com.oriole.wisepen.resource.domain.GroupTagBind;
@@ -28,9 +29,10 @@ import com.oriole.wisepen.resource.repository.GroupResConfigRepository;
 import com.oriole.wisepen.resource.repository.ResourceItemRepository;
 import com.oriole.wisepen.resource.repository.TagRepository;
 import com.oriole.wisepen.resource.enums.FileOrganizationLogic;
-import com.oriole.wisepen.resource.service.IAclEventPublisher;
+import com.oriole.wisepen.resource.service.IEventPublisher;
 import com.oriole.wisepen.resource.service.IGroupResService;
 import com.oriole.wisepen.resource.service.IResourceService;
+import com.oriole.wisepen.resource.service.ITagService;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -41,25 +43,30 @@ import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
+
+import static com.oriole.wisepen.resource.constant.ResourceConstants.RESOURCE_TRASH_COLLECTION;
 
 @Service
 @RequiredArgsConstructor
 public class ResourceServiceImpl implements IResourceService {
 
-    private static final String RESOURCE_TRASH_COLLECTION = "wisepen_resource_trash";
-
     private final TagRepository tagRepository;
     private final ResourceItemRepository resourceItemRepository;
     private final CustomResourceItemRepository customResourceItemRepository;
     private final GroupResConfigRepository groupResConfigRepository;
-    private final IAclEventPublisher aclEventPublisher;
+
+    private final IEventPublisher eventPublisher;
     private final MongoTemplate mongoTemplate;
+
     private final IGroupResService groupResService;
+    private final ITagService tagService;
 
     @Override
     public void assertResourceOwner(String resourceId, String userId) {
@@ -76,7 +83,6 @@ public class ResourceServiceImpl implements IResourceService {
                 .orElseThrow(() -> new ServiceException(ResPermissionErrorCode.RESOURCE_NOT_FOUND));
 
         entity.setResourceName(req.getNewName());
-        entity.setUpdateTime(new Date());
         resourceItemRepository.save(entity);
     }
 
@@ -89,7 +95,6 @@ public class ResourceServiceImpl implements IResourceService {
         ResourceItemEntity entity = resourceItemRepository.findById(resourceId)
                 .orElseThrow(() -> new ServiceException(ResPermissionErrorCode.RESOURCE_NOT_FOUND));
 
-        entity.setUpdateTime(new Date());
         List<GroupTagBind> groupBinds = entity.getGroupBinds();
 
         if (groupBinds == null) {
@@ -97,7 +102,13 @@ public class ResourceServiceImpl implements IResourceService {
             entity.setGroupBinds(groupBinds);
         }
 
+        boolean isTrashed = false;
+
         if (tagIds == null || tagIds.isEmpty()) {
+            // 个人空间的资源不允许被清空标签
+            if (groupId != null && groupId.startsWith(ResourceConstants.PERSONAL_GROUP_PREFIX)) {
+                throw new ServiceException(ResPermissionErrorCode.PERSONAL_SPACE_MUST_HAVE_ONE_PATH);
+            }
             // 本次操作清空了该组所有标签，从列表中移除该组
             groupBinds.removeIf(bind -> bind.getGroupId().equals(groupId));
         } else {
@@ -113,8 +124,27 @@ public class ResourceServiceImpl implements IResourceService {
                 throw new ServiceException(ResPermissionErrorCode.TAG_NOT_FOUND); // 包含无效的标签ID（实际上是跨空间越权挂载，但不返回真实原因）
             }
 
-            // FOLDER 模式：同一小组内每个资源至多挂载一个标签
-            if (!groupId.startsWith(ResourceConstants.PERSONAL_GROUP_PREFIX)) {
+            if (groupId.startsWith(ResourceConstants.PERSONAL_GROUP_PREFIX)) {
+                // 校验个人空间：必须有且仅有 1 个 isPath = true 的节点
+                List<TagEntity> pathTags =  validTags.stream().filter(tag -> Boolean.TRUE.equals(tag.getIsPath())).toList();
+                if (pathTags.size() != 1) {
+                    throw new ServiceException(ResPermissionErrorCode.PERSONAL_SPACE_MUST_HAVE_ONE_PATH);
+                }
+                // 首位 (Index 0) 的节点必须是这个唯一的 isPath 节点
+                if (!tagIds.getFirst().equals(pathTags.getFirst().getTagId())) {
+                    throw new ServiceException(ResPermissionErrorCode.PATH_MUST_BE_FIRST_TAG);
+                }
+
+                // 检查目标路径是否属于回收站
+                if (tagService.isNodeInTrash(groupId, pathTags.getFirst().getTagId()) != ITagService.TagType.NOT_IN_TRASH) {
+                    isTrashed = true;
+                    groupBinds.removeIf(bind -> !bind.getGroupId().startsWith(ResourceConstants.PERSONAL_GROUP_PREFIX));
+                    entity.setOverrideGrantedActionsMask(null);
+                    entity.setSpecifiedUsersGrantedActionsMask(null);
+                    entity.setComputedGroupAcls(null);
+                }
+            } else {
+                // 小组 FOLDER 模式：同一小组内每个资源至多挂载一个标签
                 FileOrganizationLogic logic = groupResService.getFileOrgLogic(groupId);
                 if (FileOrganizationLogic.FOLDER == logic && tagIds.size() > 1) {
                     throw new ServiceException(ResPermissionErrorCode.FOLDER_MODE_ONLY_ONE_TAG);
@@ -138,9 +168,13 @@ public class ResourceServiceImpl implements IResourceService {
         }
         resourceItemRepository.save(entity);
         if (groupId != null && groupId.startsWith(ResourceConstants.PERSONAL_GROUP_PREFIX)) {
-            return; // 个人Tag变更不需要重新计算Acl
+            // 个人空间的普通路径变更不需要发通知，但如果是“进入回收站导致组分享被剥夺”则必须通知下游
+            if (isTrashed) {
+                eventPublisher.publishAclRecalculateEvent(entity.getResourceId(), "STRIP_GROUP_PERMISSION");
+            }
+            return;
         }
-        this.calculateResourceGroupAcl(entity.getResourceId());
+        eventPublisher.publishAclRecalculateEvent(entity.getResourceId(), "RESOURCE_TAGS_CHANGED");
     }
 
     @Override
@@ -164,11 +198,10 @@ public class ResourceServiceImpl implements IResourceService {
             entity.setSpecifiedUsersGrantedActionsMask(null);
         }
 
-        entity.setUpdateTime(new Date());
         resourceItemRepository.save(entity);
 
         // 保存资源级权限覆盖后，触发重算
-        this.calculateResourceGroupAcl(entity.getResourceId());
+        eventPublisher.publishAclRecalculateEvent(entity.getResourceId(), "RESOURCE_ACTION_PERMISSION_CHANGED");
     }
 
     @Override
@@ -254,10 +287,28 @@ public class ResourceServiceImpl implements IResourceService {
                                                           String resourceType, int page, int size,
                                                           ResourceSortBy sortBy, SortDirectionEnum sortDir) {
 
+        List<String> excludeTrashIds = null;
+        // 如果是个人空间，且没有明确指定要查回收站，必须把回收站设为黑名单
+        if (groupId != null && groupId.startsWith(ResourceConstants.PERSONAL_GROUP_PREFIX)) {
+            TagEntity trashNode = tagRepository.findByGroupIdAndParentIdAndTagName(
+                    groupId, "0", ResourceConstants.TRASH_TAG_NAME).orElse(null);
+
+            if (trashNode != null) {
+                // 只有在“全局查询/全部文件”（前端未传特定 tagId）时，才需要拉黑回收站
+                // 如果前端传了 tagIds，说明用户是在明确浏览某个特定文件夹（哪怕它已经在回收站里），此时不应拦截。
+                if (tagIds == null || tagIds.isEmpty()) {
+                    // 查出回收站体系下的所有子孙文件夹
+                    List<TagEntity> descendants = tagRepository.findByGroupIdAndAncestorsContaining(groupId, trashNode.getTagId());
+                    excludeTrashIds = descendants.stream().map(TagEntity::getTagId).collect(Collectors.toList());
+                    excludeTrashIds.add(trashNode.getTagId());
+                }
+            }
+        }
+
         Pageable pageable = PageRequest.of(page - 1, size, Sort.by(sortDir.toSpringDirection(), sortBy.getDbField()));
 
         Page<ResourceItemEntity> entityPage = customResourceItemRepository.findAccessibleResources(
-                currentUserId, groupId, userGroupRole, tagIds, tagQueryLogicMode, resourceType, pageable);
+                currentUserId, groupId, userGroupRole, tagIds, excludeTrashIds, tagQueryLogicMode, resourceType, pageable);
 
         // 批量获取当前页用到的所有 Tag 名称
         Set<String> allTagIdsToFetch = new HashSet<>();
@@ -328,76 +379,146 @@ public class ResourceServiceImpl implements IResourceService {
     public String createResourceItem(ResourceCreateReqDTO dto) {
         ResourceItemEntity entity = new ResourceItemEntity();
         BeanUtil.copyProperties(dto, entity);
-
-        entity.setCreateTime(new Date());
-        entity.setUpdateTime(new Date());
-
         resourceItemRepository.save(entity);
+        try {
+            String pathTagID = !StringUtils.hasText(dto.getPathTagId()) ?
+                    tagRepository.findByGroupIdAndParentIdAndTagName(
+                                ResourceConstants.PERSONAL_GROUP_PREFIX + dto.getOwnerId(), "0", ResourceConstants.ROOT_TAG_NAME)
+                        .orElseThrow(() -> new ServiceException(ResPermissionErrorCode.TAG_NOT_FOUND)).getTagId()
+                    :
+                    dto.getPathTagId();
+            List<String> targetTagIds = Collections.singletonList(pathTagID);
+
+            ResourceUpdateTagsRequest bindReq = new ResourceUpdateTagsRequest();
+            bindReq.setResourceId(entity.getResourceId());
+            bindReq.setGroupId(ResourceConstants.PERSONAL_GROUP_PREFIX + dto.getOwnerId());
+            bindReq.setTagIds(targetTagIds);
+            this.updateResourceTags(bindReq);
+        } catch (Exception e) {
+            // 创建资源失败，回滚
+            resourceItemRepository.deleteById(entity.getResourceId());
+            throw e;
+        }
         return entity.getResourceId();
     }
 
     @Override
-    public void softRemoveResourceItem(String resourceId) {
-        resourceItemRepository.findById(resourceId).ifPresent(entity -> {
-            // 插入到回收站集合中
-            mongoTemplate.save(entity, RESOURCE_TRASH_COLLECTION);
-            resourceItemRepository.deleteById(resourceId);
-        });
+    public void softRemoveResources(List<String> resourceIds) {
+        if (resourceIds == null || resourceIds.isEmpty()) {
+            return;
+        }
+        List<ResourceItemEntity> entities = resourceItemRepository.findAllById(resourceIds);
+        if (entities.isEmpty()) {
+            return;
+        }
+        for (ResourceItemEntity entity : entities) {
+            entity.setDeletedAt(LocalDateTime.now());
+            mongoTemplate.save(entity, RESOURCE_TRASH_COLLECTION); // 插入到回收集合（用于审计）中
+        }
+        resourceItemRepository.deleteAllById(resourceIds);// 从业务表中物理擦除
+    }
+
+    @Override
+    public void hardRemoveResources(List<String> resourceIds) {
+        if (resourceIds == null || resourceIds.isEmpty()) {
+            return;
+        }
+        // 仅从审计集合中物理擦除
+        Query physicalDeleteQuery = Query.query(Criteria.where("_id").in(resourceIds));
+        long deletedCount = mongoTemplate.remove(physicalDeleteQuery, RESOURCE_TRASH_COLLECTION).getDeletedCount();
+        if (deletedCount > 0) {
+            // 发送 Kafka 广播，通知文件存储等下游微服务抹除物理文件
+            eventPublisher.publishResDeletedEvent(resourceIds);
+        }
     }
 
     @Override
     public void updateResourceAttributes(ResourceUpdateReqDTO dto) {
         resourceItemRepository.findById(dto.getResourceId()).ifPresent(entity -> {
             BeanUtil.copyProperties(dto, entity, CopyOptions.create().ignoreNullValue());
-            entity.setUpdateTime(new Date());
             resourceItemRepository.save(entity);
         });
     }
 
     @Override
-    public void afterTagNodeChanged(List<String> changedTagIds) {
+    public void afterTagNodeChanged(List<String> changedTagIds, Boolean isPersonalTag) {
+        if (isPersonalTag) {
+            return; // 个人Tag变更不需要重新计算Acl
+        }
         if (changedTagIds == null || changedTagIds.isEmpty())
             return;
-
         // 查询所有涉及的资源绑定记录
         List<ResourceItemEntity> affectedBinds = resourceItemRepository.findByTagIdsIn(changedTagIds);
-
         // 循环触发权限预计算
-        // 个人Tag不能设置权限，无法触发afterTagNodeChanged，因此无需特意排除
         for (ResourceItemEntity bind : affectedBinds) {
-            aclEventPublisher.publishRecalculateEvent(bind.getResourceId(), "TAG_CHANGED");
+            eventPublisher.publishAclRecalculateEvent(bind.getResourceId(), "TAG_CHANGED");
         }
     }
 
     @Override
-    public void afterTagNodeDeleted(List<String> deletedTagIds, Boolean isPersonalTag) {
+    public void afterTagNodeDeleted(List<String> deletedTagIds, Boolean isPersonalTag, Boolean isPathTag) {
         if (deletedTagIds == null || deletedTagIds.isEmpty()) return;
 
         // 查询所有涉及的资源绑定记录
         List<ResourceItemEntity> affectedBinds = resourceItemRepository.findByTagIdsIn(deletedTagIds);
+        if (affectedBinds.isEmpty()) {
+            return;
+        }
 
-        for (ResourceItemEntity entity : affectedBinds) {
-            if (entity.getGroupBinds() != null) {
-                Iterator<GroupTagBind> iterator = entity.getGroupBinds().iterator();
-                while (iterator.hasNext()) {
-                    GroupTagBind groupBind = iterator.next();
+        // 如果是路径(FOLDER Tag)被彻底销毁，触发资源的软删除
+        if (Boolean.TRUE.equals(isPathTag)) {
+            for (ResourceItemEntity entity : affectedBinds) {
+                // 插入到回收集合（用于审计）中
+                entity.setDeletedAt(LocalDateTime.now());
+                mongoTemplate.save(entity, RESOURCE_TRASH_COLLECTION);
+            }
+            // 从业务表中物理擦除
+            resourceItemRepository.deleteAll(affectedBinds);
+            // 资源已经彻底从业务流中消失，直接返回，无需重算 ACL
+        } else {
+            for (ResourceItemEntity entity : affectedBinds) {
+                if (entity.getGroupBinds() != null) {
+                    Iterator<GroupTagBind> iterator = entity.getGroupBinds().iterator();
+                    while (iterator.hasNext()) {
+                        GroupTagBind groupBind = iterator.next();
 
-                    // 移除掉已经被删除的 Tag ID
-                    if (groupBind.getTagIds() != null) {
-                        groupBind.getTagIds().removeAll(deletedTagIds);
-                    }
+                        // 移除掉已经被删除的 Tag ID
+                        if (groupBind.getTagIds() != null) {
+                            groupBind.getTagIds().removeAll(deletedTagIds);
+                        }
 
-                    // 如果移除后，该组下没有任何 Tag 了，清理空组
-                    if (groupBind.getTagIds() == null || groupBind.getTagIds().isEmpty()) {
-                        iterator.remove();
+                        // 如果移除后，该组下没有任何 Tag 了，清理空组
+                        if (groupBind.getTagIds() == null || groupBind.getTagIds().isEmpty()) {
+                            iterator.remove();
+                        }
                     }
                 }
+                resourceItemRepository.save(entity);
+                if (isPersonalTag) {
+                    continue; // 个人Tag变更不需要重新计算Acl
+                }
+                eventPublisher.publishAclRecalculateEvent(entity.getResourceId(), "TAG_DELETED");
             }
-            resourceItemRepository.save(entity);
-            if (isPersonalTag) {
-                continue; // 个人Tag变更不需要重新计算Acl
+        }
+    }
+
+    public void stripGroupPermission(List<String> trashedTagIds){
+        if (trashedTagIds == null || trashedTagIds.isEmpty()) return;
+
+        Query query = new Query(Criteria.where("groupBinds.tagIds").in(trashedTagIds));
+        List<ResourceItemEntity> affectedResources = mongoTemplate.find(query, ResourceItemEntity.class);
+
+        if (!affectedResources.isEmpty()) {
+            for (ResourceItemEntity entity : affectedResources) {
+                entity.getGroupBinds().removeIf(bind -> !bind.getGroupId().startsWith(ResourceConstants.PERSONAL_GROUP_PREFIX));
+                entity.setOverrideGrantedActionsMask(null);
+                entity.setSpecifiedUsersGrantedActionsMask(null);
+                entity.setComputedGroupAcls(null);
             }
-            aclEventPublisher.publishRecalculateEvent(entity.getResourceId(), "TAG_DELETED");
+            resourceItemRepository.saveAll(affectedResources);
+            for (ResourceItemEntity entity : affectedResources) {
+                eventPublisher.publishAclRecalculateEvent(entity.getResourceId(), "STRIP_GROUP_PERMISSION");
+            }
         }
     }
 
@@ -454,7 +575,7 @@ public class ResourceServiceImpl implements IResourceService {
         Query query = new Query(Criteria.where("_id").is(resourceId));
         Update update = new Update()
                 .set("computedGroupAcls", computedGroupAcls)
-                .set("updateTime", new Date());
+                .set("updateTime", LocalDateTime.now());
         mongoTemplate.updateFirst(query, update, ResourceItemEntity.class);
     }
 

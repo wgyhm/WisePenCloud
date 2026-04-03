@@ -24,4 +24,7 @@ public interface TagRepository extends MongoRepository<TagEntity, String> {
 
     // 删除某个用户组下的所有 Tag（小组解散时使用）
     void deleteByGroupId(String groupId);
+
+    // 用于同级重名校验
+    Optional<TagEntity> findByGroupIdAndParentIdAndTagName(String groupId, String parentId, String tagName);
 }

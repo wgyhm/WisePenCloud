@@ -2,15 +2,25 @@ package com.oriole.wisepen.resource.domain.entity;
 
 import com.oriole.wisepen.resource.domain.base.TagInfoBase;
 import com.oriole.wisepen.resource.enums.AclGrantMode;
+import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
+import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.Id;
+import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.mongodb.core.mapping.Document;
+
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Date;
 
 @EqualsAndHashCode(callSuper = true)
 @Data
+@SuperBuilder
+@NoArgsConstructor
+@AllArgsConstructor
 @Document(collection = "wisepen_tags")
 public class TagEntity extends TagInfoBase {
     @Id
@@ -25,6 +35,8 @@ public class TagEntity extends TagInfoBase {
     private List<String> specifiedUsers; // 配合白名单/黑名单使用的 userId 列表
     private Integer grantedActionsMask;  // 匹配该标签时授予的权限掩码
 
-    private Date createTime;
-    private Date updateTime;
+    @CreatedDate
+    private LocalDateTime createTime;
+    @LastModifiedDate
+    private LocalDateTime updateTime;
 }

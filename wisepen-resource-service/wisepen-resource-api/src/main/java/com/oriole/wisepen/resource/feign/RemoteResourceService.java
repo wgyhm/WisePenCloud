@@ -23,10 +23,6 @@ public interface RemoteResourceService {
     @PostMapping("/internal/resource/addRes")
     R<String> createResource(@RequestBody ResourceCreateReqDTO dto);
 
-    @Operation(summary = "移除资源", description = "移除用户资源")
-    @PostMapping("/internal/resource/deleteRes")
-    R<Void> removeResource(@RequestParam("resourceId") String resourceId);
-
     @Operation(summary = "更新资源属性", description = "更新已有资源的大小等元信息")
     @PostMapping("/internal/resource/changeResAttr")
     R<Void> updateAttributes(@RequestBody ResourceUpdateReqDTO dto);

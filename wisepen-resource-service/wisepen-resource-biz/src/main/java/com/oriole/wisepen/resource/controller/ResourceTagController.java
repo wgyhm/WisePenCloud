@@ -70,7 +70,7 @@ public class ResourceTagController {
     @Operation(summary = "级联删除标签", description = "删除个人或小组指定标签及其所有的子孙节点")
     public R<Void> deleteTag(@Validated @RequestBody TagDeleteRequest tagDeleteRequest) {
         checkPermission(tagDeleteRequest, true);
-        tagService.deleteTag(tagDeleteRequest);
+        tagService.deleteTag(tagDeleteRequest, false);
         return R.ok();
     }
 

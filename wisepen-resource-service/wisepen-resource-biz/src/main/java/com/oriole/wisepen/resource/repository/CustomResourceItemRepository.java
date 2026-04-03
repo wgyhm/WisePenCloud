@@ -26,10 +26,17 @@ public class CustomResourceItemRepository {
 
     // 核心分页查询
     public Page<ResourceItemEntity> findAccessibleResources(
-            String userId, String groupId, GroupRoleType userGroupRole, List<String> tagIds, QueryLogicEnum tagQueryLogicMode,
+            String userId, String groupId, GroupRoleType userGroupRole, List<String> tagIds, List<String> excludeTrashId, QueryLogicEnum tagQueryLogicMode,
             String resourceType, Pageable pageable) {
 
         Criteria criteria = new Criteria();
+
+        if (excludeTrashId != null && !excludeTrashId.isEmpty()) {
+            // MongoDB 语法：排除 groupBinds 数组中，groupId 匹配 且 tagIds 中包含回收站黑名单中任意一个 ID 的记录
+            criteria.and("groupBinds").not().elemMatch(
+                    Criteria.where("groupId").is(groupId).and("tagIds").in(excludeTrashId)
+            );
+        }
 
         // 资源类型过滤
         if (StringUtils.hasText(resourceType)) {

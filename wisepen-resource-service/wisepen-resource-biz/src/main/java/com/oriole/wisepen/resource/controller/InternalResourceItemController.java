@@ -1,7 +1,6 @@
 package com.oriole.wisepen.resource.controller;
 
 import com.oriole.wisepen.common.core.domain.R;
-import com.oriole.wisepen.common.core.domain.enums.GroupRoleType;
 import com.oriole.wisepen.resource.domain.dto.*;
 import com.oriole.wisepen.resource.domain.dto.res.ResourceItemResponse;
 import com.oriole.wisepen.resource.feign.RemoteResourceService;
@@ -11,8 +10,6 @@ import com.oriole.wisepen.resource.service.ITagService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.Map;
 
 @RestController
 @RequestMapping("/internal/resource")
@@ -28,13 +25,6 @@ public class InternalResourceItemController implements RemoteResourceService {
     public R<String> createResource(@Validated @RequestBody ResourceCreateReqDTO dto) {
         String resourceId = resourceService.createResourceItem(dto);
         return R.ok(resourceId);
-    }
-
-    // 删除资源摘要
-    @PostMapping("/deleteRes")
-    public R<Void> removeResource(@RequestParam("resourceId") String resourceId) {
-        resourceService.softRemoveResourceItem(resourceId);
-        return R.ok();
     }
 
     // 同步修改资源属性
@@ -61,7 +51,7 @@ public class InternalResourceItemController implements RemoteResourceService {
     @PostMapping("/dissolveGroup")
     public R<Void> dissolveGroup(@RequestParam("groupId") Long groupId) {
         tagService.softRemoveAllTagByGroupId(groupId.toString());
-        groupResService.softRemoveGroupResConfig(groupId.toString());
+        groupResService.softRemoveGroupResConfigByGroupId(groupId.toString());
         return R.ok();
     }
 

@@ -24,10 +24,10 @@ public interface IGroupResService {
     /**
      * 小组解散时软删除
      */
-    void softRemoveGroupResConfig(String groupId);
+    void softRemoveGroupResConfigByGroupId(String groupId);
 
     /**
      * 30 天后的硬删除，由定时任务调用
      */
-    void hardRemoveGroupResConfig(String groupId);
+    void hardRemoveGroupResConfigByGroupId(String groupId);
 }
