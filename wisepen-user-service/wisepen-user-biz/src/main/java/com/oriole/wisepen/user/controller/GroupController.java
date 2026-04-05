@@ -40,7 +40,7 @@ public class GroupController {
 	}
 
 	@PostMapping("/addGroup")
-	public R<Void> createGroup(@RequestBody @Valid GroupCreateRequest req) {
+	public R<Long> createGroup(@RequestBody @Valid GroupCreateRequest req) {
 
 		IdentityType userIdentityType= SecurityContextHolder.getIdentityType();
 		if (req.getGroupType() == GroupType.ADVANCED_GROUP && userIdentityType == IdentityType.STUDENT) {
@@ -51,8 +51,7 @@ public class GroupController {
 			throw new PermissionException(PermissionErrorCode.IDENTITY_UNAUTHORIZED);
 		}
 
-		groupService.createGroup(req, SecurityContextHolder.getUserId());
-		return R.ok();
+		return R.ok(groupService.createGroup(req, SecurityContextHolder.getUserId()));
 	}
 
 	@PostMapping("/changeGroup")
