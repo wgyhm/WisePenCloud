@@ -12,7 +12,7 @@ import com.oriole.wisepen.user.domain.entity.UserProfileEntity;
 import java.util.Map;
 import java.util.Set;
 
-public interface UserService {
+public interface IUserService {
 
     // 根据账号获取用户信息
     UserEntity getUserCoreInfoByAccount(String account);

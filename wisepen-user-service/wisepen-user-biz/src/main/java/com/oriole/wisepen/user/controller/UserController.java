@@ -10,10 +10,9 @@ import com.oriole.wisepen.user.api.domain.dto.res.UserDetailInfoResponse;
 import com.oriole.wisepen.user.api.domain.dto.VerificationResultDTO;
 import com.oriole.wisepen.user.api.domain.dto.req.UserProfileUpdateRequest;
 import com.oriole.wisepen.user.api.enums.UserVerificationMode;
-import com.oriole.wisepen.user.service.UserService;
+import com.oriole.wisepen.user.service.IUserService;
 import com.oriole.wisepen.user.strategy.VerificationStrategyFactory;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.BeanUtils;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
@@ -24,7 +23,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class UserController {
 
-    private final UserService userService;
+    private final IUserService userService;
     private final VerificationStrategyFactory verificationStrategyFactory;
 
     @CheckLogin

@@ -10,18 +10,16 @@ import com.oriole.wisepen.user.api.domain.dto.req.AuthLoginRequest;
 import com.oriole.wisepen.user.domain.entity.UserEntity;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import java.util.*;
-import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class AuthService {
 
-    private final UserService userService;
-    private final GroupMemberService groupMemberService;
+    private final IUserService userService;
+    private final IGroupMemberService groupMemberService;
     private final RedisCacheManager redisCacheManager;
 
     public String login(AuthLoginRequest loginRequest) {

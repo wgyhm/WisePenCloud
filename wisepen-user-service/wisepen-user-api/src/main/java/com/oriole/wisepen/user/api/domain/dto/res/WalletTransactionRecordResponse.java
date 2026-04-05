@@ -1,15 +1,15 @@
 package com.oriole.wisepen.user.api.domain.dto.res;
 
-import com.oriole.wisepen.common.core.domain.enums.ChangeType;
+import com.oriole.wisepen.user.api.enums.TokenTransactionType;
 import lombok.Data;
 
 import java.time.LocalDateTime;
 
 @Data
-public class GroupMemberGetTransactionsResponse {
+public class WalletTransactionRecordResponse {
 	Long traceId;
 	LocalDateTime createTime;
-	ChangeType changeType;
+	TokenTransactionType tokenTransactionType;
 	Long amount;
 	String meta;
 	String operatorName;

@@ -9,14 +9,12 @@ import com.oriole.wisepen.user.api.domain.dto.req.AuthRegisterRequest;
 import com.oriole.wisepen.user.api.domain.dto.req.AuthPwdResetRequest;
 import com.oriole.wisepen.user.api.domain.dto.req.AuthPwdResetVerifyRequest;
 import com.oriole.wisepen.user.service.AuthService;
-import com.oriole.wisepen.user.service.UserService;
+import com.oriole.wisepen.user.service.IUserService;
 import jakarta.servlet.http.Cookie;
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.util.WebUtils;
 
 import static com.oriole.wisepen.common.core.constant.SecurityConstants.AUTHORIZATION_TOKEN;
 
@@ -26,7 +24,7 @@ import static com.oriole.wisepen.common.core.constant.SecurityConstants.AUTHORIZ
 public class AuthController {
 
     private final AuthService authService;
-    private final UserService userService;
+    private final IUserService userService;
 
     @PostMapping("/login")
     public R<String> login(@Valid @RequestBody AuthLoginRequest loginRequest, HttpServletResponse response) {

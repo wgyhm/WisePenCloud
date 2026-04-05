@@ -3,7 +3,6 @@ package com.oriole.wisepen.user.domain.entity;
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
-import com.oriole.wisepen.user.api.enums.VoucherStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -16,13 +15,14 @@ import java.util.Date;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@TableName("sys_vouchers")
-public class VoucherEntity implements Serializable {
-	@TableId(value="voucher_id", type = IdType.INPUT)
-	private Long voucherId;
-	private String code;
-	private Integer amount;
-	private VoucherStatus status;
+@TableName("sys_user_wallets")
+public class UserWalletEntity implements Serializable {
 
-	private Date expireTime;
+	@TableId(value="Id", type = IdType.INPUT)
+	private Long userId;
+
+	private Integer tokenBalance;
+	private Integer tokenUsed;
+
+	private Date updateTime;
 }
