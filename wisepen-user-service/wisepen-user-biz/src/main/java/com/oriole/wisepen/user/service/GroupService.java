@@ -31,7 +31,7 @@ public interface GroupService {
     void updateGroup(GroupUpdateRequest req);
 
     // 删除群组
-    void deleteGroup(GroupDeleteRequest req);
+    void deleteGroup(Long userId, GroupDeleteRequest req);
 
     // 获取指定用户的群组分页列表
     PageResult<GroupItemInfoResponse> getGroupList(Long userId, GroupRoleType groupRoleType, int page, int size);

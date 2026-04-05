@@ -92,13 +92,14 @@ public class GroupServiceImpl implements GroupService {
     }
 
     @Override
-    public void deleteGroup(GroupDeleteRequest req) {
+    public void deleteGroup(Long userId, GroupDeleteRequest req) {
         Long groupId = req.getGroupId();
-
-        int rows = groupMapper.deleteById(groupId);
-        if (rows == 0) {
+        GroupEntity group = groupMapper.selectById(groupId);
+        if (group == null) {
             throw new ServiceException(GroupErrorCode.GROUP_NOT_EXIST);
         }
+        groupMemberService.exchangeTokenToOwner(userId, groupId, group.getTokenUsed());
+        groupMapper.deleteById(groupId);
         groupMemberService.removeAllGroupMembers(groupId);
 
         // 通知资源微服务删除该小组的 Tag 树与资源配置

@@ -74,7 +74,8 @@ public class GroupController {
 	@PostMapping("/removeGroup")
 	public R<Void> deleteGroup(@RequestBody @Valid GroupDeleteRequest req) {
 		SecurityContextHolder.assertGroupRole(req.getGroupId(), GroupRoleType.OWNER);
-		groupService.deleteGroup(req);
+		Long userId=SecurityContextHolder.getUserId();
+		groupService.deleteGroup(userId, req);
 		return R.ok();
 	}
 

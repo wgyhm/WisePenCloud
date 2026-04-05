@@ -9,7 +9,7 @@ import java.util.Arrays;
 
 @Getter
 @AllArgsConstructor
-public enum ConsumberTpye {
+public enum ConsumerType {
 	USER(1,"USER"),
 	GROUP(2,"GROUP");
 
@@ -19,7 +19,7 @@ public enum ConsumberTpye {
 
 	private final String desc;
 
-	public static ConsumberTpye getByCode(Integer code) {
+	public static ConsumerType getByCode(Integer code) {
 		if (code == null) {return null;}
 		return Arrays.stream(values())
 				.filter(t -> t.getCode() == code)
