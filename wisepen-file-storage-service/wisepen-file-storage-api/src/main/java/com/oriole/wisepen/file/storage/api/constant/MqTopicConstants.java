@@ -5,4 +5,5 @@ package com.oriole.wisepen.file.storage.api.constant;
 public interface MqTopicConstants {
     /** 文件上传/秒传就绪事件 */
     String TOPIC_FILE_UPLOADED = "wisepen-storage-file-uploaded-topic";
+    String TOPIC_FILE_DELETE = "wisepen-storage-file-delete-topic";
 }

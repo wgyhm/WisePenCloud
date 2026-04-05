@@ -18,7 +18,7 @@ public class UploadInitReqDTO implements Serializable {
     private String md5;
     private String extension;
     private StorageSceneEnum scene;
-    private String bizPath;
+    private String bizTag;
     private Long configId;
     private Long expectedSize;
 }

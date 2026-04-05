@@ -2,6 +2,7 @@ package com.oriole.wisepen.file.storage.domain.entity;
 
 import com.baomidou.mybatisplus.annotation.*;
 import com.oriole.wisepen.file.storage.api.domain.base.StorageRecordBase;
+import com.oriole.wisepen.file.storage.api.enums.StorageSceneEnum;
 import com.oriole.wisepen.file.storage.api.enums.StorageStatusEnum;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
@@ -33,6 +34,8 @@ public class StorageRecordEntity extends StorageRecordBase implements Serializab
     private Long configId;
 
     private StorageStatusEnum status;
+
+    private StorageSceneEnum scene;
 
     @TableField(value = "create_time", fill = FieldFill.INSERT)
     private LocalDateTime createTime;

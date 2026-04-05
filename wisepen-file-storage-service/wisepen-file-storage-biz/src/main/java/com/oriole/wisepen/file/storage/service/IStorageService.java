@@ -21,9 +21,9 @@ public interface IStorageService {
     /**
      * 小文件代理上传
      * @param scene           场景隔离标识
-     * @param bizPath         业务路径隔离标识
+     * @param bizTag         业务路径隔离标识
      */
-    StorageRecordDTO uploadSmallFileProxy(MultipartFile file, StorageSceneEnum scene, String bizPath);
+    StorageRecordDTO uploadSmallFileProxy(MultipartFile file, StorageSceneEnum scene, String bizTag);
 
     /**
      * 获取单文件的私有下载链接（防盗链）
@@ -35,11 +35,11 @@ public interface IStorageService {
     /**
      * 颁发 STS 临时凭证（支持前端批量加载受保护目录）
      * @param scene           场景隔离标识
-     * @param bizPath         业务路径隔离标识
+     * @param bizTag         业务路径隔离标识
      * @param configId        目标存储源ID（如业务方不指定，则降级使用 Primary 源）
      * @param durationSeconds 凭证有效时长
      */
-    StsTokenDTO getStsToken(StorageSceneEnum scene, String bizPath, Long configId, Long durationSeconds);
+    StsTokenDTO getStsToken(StorageSceneEnum scene, String bizTag, Long configId, Long durationSeconds);
 
     /**
      * 软删除文件

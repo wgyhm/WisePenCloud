@@ -8,7 +8,6 @@ import cn.hutool.core.util.IdUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.http.HttpUtil;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.oriole.wisepen.common.core.exception.ServiceException;
 import com.oriole.wisepen.file.storage.api.domain.base.StorageRecordBase;
@@ -24,7 +23,7 @@ import com.oriole.wisepen.file.storage.config.StorageProperties;
 import com.oriole.wisepen.file.storage.domain.entity.StorageRecordEntity;
 import com.oriole.wisepen.file.storage.exception.StorageErrorCode;
 import com.oriole.wisepen.file.storage.mapper.StorageRecordMapper;
-import com.oriole.wisepen.file.storage.service.IStorageEventPublisher;
+import com.oriole.wisepen.file.storage.mq.KafkaStorageEventPublisher;
 import com.oriole.wisepen.file.storage.service.IStorageService;
 import com.oriole.wisepen.file.storage.strategy.StorageManager;
 import com.oriole.wisepen.file.storage.strategy.StorageProvider;
@@ -50,7 +49,7 @@ public class StorageServiceImpl implements IStorageService {
 
     private final StorageManager storageManager;
     private final StorageRecordMapper storageRecordMapper;
-    private final IStorageEventPublisher eventPublisher;
+    private final KafkaStorageEventPublisher eventPublisher;
     private final StorageProperties storageProperties;
     private final ObjectMapper objectMapper;
 
@@ -67,7 +66,7 @@ public class StorageServiceImpl implements IStorageService {
                         .last("LIMIT 1")
         );
 
-        String newObjectKey = buildObjectKey(req.getScene().getPrefix(), req.getBizPath(), req.getExtension());
+        String newObjectKey = buildObjectKey(req.getScene().getPrefix(), req.getBizTag(), req.getExtension());
         String domain = provider.getDomain();
 
         if (existRecord != null) {
@@ -77,7 +76,7 @@ public class StorageServiceImpl implements IStorageService {
                 provider.copyObject(existRecord.getObjectKey(), newObjectKey);
             }  catch (Exception e) {
                 // 秒传异常，获取直传 PUT URL
-                return this.getPutUrl(newObjectKey, provider);
+                return this.getPutUrl(req.getScene(), newObjectKey, provider);
             }
 
             StorageRecordEntity newRecord = BeanUtil.copyProperties(existRecord, StorageRecordEntity.class,
@@ -99,12 +98,12 @@ public class StorageServiceImpl implements IStorageService {
         }
 
         // 没命中秒传，获取直传 PUT URL
-        return this.getPutUrl(newObjectKey, provider);
+        return this.getPutUrl(req.getScene(), newObjectKey, provider);
     }
 
-    private UploadInitRespDTO getPutUrl(String newObjectKey, StorageProvider provider) {
+    private UploadInitRespDTO getPutUrl(StorageSceneEnum scene, String newObjectKey, StorageProvider provider) {
         StorageRecordEntity newRecord = StorageRecordEntity.builder()
-                .objectKey(newObjectKey).status(StorageStatusEnum.UPLOADING).configId(provider.getConfigId())
+                .scene(scene).objectKey(newObjectKey).status(StorageStatusEnum.UPLOADING).configId(provider.getConfigId())
                 .build();
         storageRecordMapper.insert(newRecord);
         UploadUrlBase uploadUrl = provider.generateUploadTicket(newObjectKey, storageProperties.getDefaultTicketDuration(), storageProperties.getApiDomain());
@@ -117,19 +116,19 @@ public class StorageServiceImpl implements IStorageService {
     }
 
     @Override
-    public StorageRecordDTO uploadSmallFileProxy(MultipartFile file, StorageSceneEnum scene, String bizPath) {
+    public StorageRecordDTO uploadSmallFileProxy(MultipartFile file, StorageSceneEnum scene, String bizTag) {
         if (file.getSize() > storageProperties.getMaxSmallFileSize()) {
             throw new ServiceException(StorageErrorCode.FILE_SIZE_EXCEEDED);
         }
 
         String extension = FileUtil.extName(file.getOriginalFilename()).toLowerCase();
 
-        String objectKey = buildObjectKey(scene.getPrefix(), bizPath, extension);
+        String objectKey = buildObjectKey(scene.getPrefix(), bizTag, extension);
         StorageProvider provider = storageManager.getPrimaryProvider();
         provider.uploadSmallFile(file, objectKey);
 
         StorageRecordEntity newRecord = StorageRecordEntity.builder()
-                .objectKey(objectKey).size(file.getSize()).configId(provider.getConfigId()).status(StorageStatusEnum.AVAILABLE)
+                .scene(scene).objectKey(objectKey).size(file.getSize()).configId(provider.getConfigId()).status(StorageStatusEnum.AVAILABLE)
                 .build();
         storageRecordMapper.insert(newRecord);
 
@@ -169,13 +168,13 @@ public class StorageServiceImpl implements IStorageService {
     }
 
     @Override
-    public StsTokenDTO getStsToken(StorageSceneEnum scene, String bizPath, Long configId, Long durationSeconds) {
-        String cleanBizPath = StrUtil.isNotBlank(bizPath)
-                ? bizPath.replaceAll("^/+", "").replaceAll("/+$", "")
+    public StsTokenDTO getStsToken(StorageSceneEnum scene, String bizTag, Long configId, Long durationSeconds) {
+        String cleanBizTag = StrUtil.isNotBlank(bizTag)
+                ? bizTag.replaceAll("^/+", "").replaceAll("/+$", "")
                 : "";
         String pathPrefix = scene.getPrefix();
-        if (StrUtil.isNotBlank(cleanBizPath)) {
-            pathPrefix += "/" + cleanBizPath;
+        if (StrUtil.isNotBlank(cleanBizTag)) {
+            pathPrefix += "/" + cleanBizTag;
         }
         pathPrefix += "/*"; // 加上通配符，授予该目录及子目录下的读取权限
         // 如果业务方不指定 configId，StorageManager 会自动降级使用 PrimaryProvider
@@ -220,14 +219,15 @@ public class StorageServiceImpl implements IStorageService {
         log.info("云端直传文件回调落库: {}/{}", provider.getDomain(), objectKey);
     }
 
-    private String buildObjectKey(String scenePrefix, String bizPath, String extension) {
-        String cleanBizPath = StrUtil.isNotBlank(bizPath)
-                ? bizPath.replaceAll("^/+", "").replaceAll("/+$", "")
-                : null;
-        String datePath = DateTimeFormatter.ofPattern("yyyy/MM/dd").format(LocalDateTime.now());
+    private String buildObjectKey(String scenePrefix, String bizTag, String extension) {
+        String cleanBizTag = StrUtil.isNotBlank(bizTag)
+                ? bizTag.replaceAll("^/+", "").replaceAll("/+$", "")
+                : DateTimeFormatter.ofPattern("yyyy/MM/dd").format(LocalDateTime.now());
         String fileName = IdUtil.fastSimpleUUID() + "." + extension;
 
-        return Stream.of(scenePrefix, cleanBizPath, datePath, fileName)
+        // 场景后缀 + 时间戳 / 业务Tag + 文件名
+        // 例如 public/images/user/2026/1/1/XXXX.png private/images/note/XXXX/XXXX.png
+        return Stream.of(scenePrefix, cleanBizTag, fileName)
                 .filter(StrUtil::isNotBlank)
                 .collect(Collectors.joining("/"));
     }
@@ -270,7 +270,7 @@ public class StorageServiceImpl implements IStorageService {
             dto.setDomain(provider.getDomain());
 
             // 补发 Kafka 消息
-            eventPublisher.publishFileUploadedEvent(BeanUtil.copyProperties(dto, FileUploadedMessage.class));
+            eventPublisher.publishFileUploadedEvent(BeanUtil.copyProperties(record, FileUploadedMessage.class));
 
             log.info("文件状态已更新, 本地处于 AVAILABLE: {}/{}", provider.getDomain(), record.getObjectKey());
             return dto;

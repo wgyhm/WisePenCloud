@@ -10,9 +10,10 @@ import lombok.Getter;
 @AllArgsConstructor
 public enum StorageSceneEnum {
 
-    PUBLIC_IMAGE("public/images"),    // 公开图床 (如头像、文章插图，无需鉴权即可访问)
-    PRIVATE_IMAGE("private/images"),  // 私密图床 (如群聊图片，需 STS Token 访问)
-    PRIVATE_DOC("private/docs");      // 业务文档 (如 PDF、Word，永远在私有域)
+    PUBLIC_IMAGE_FOR_USER("public/images/user"),    // 公开图床 (如头像、文章插图，无需鉴权即可访问)
+    PUBLIC_IMAGE_FOR_GROUP("public/images"),
+    PRIVATE_IMAGE_FOR_NOTE("private/images/note"),  // 私密图床 (如笔记中的图片，需 STS Token 访问)
+    PRIVATE_DOC("private/docs");      // 文档 (如 PDF、Word，永远在私有域)
 
     private final String prefix;
 }

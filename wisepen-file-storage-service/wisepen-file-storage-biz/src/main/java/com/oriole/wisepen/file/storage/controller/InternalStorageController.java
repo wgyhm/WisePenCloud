@@ -44,10 +44,10 @@ public class InternalStorageController {
     @GetMapping("/getStsToken")
     public R<StsTokenDTO> getStsToken(
             @RequestParam("scene") StorageSceneEnum scene,
-            @RequestParam(value = "bizPath", required = false) String bizPath,
+            @RequestParam(value = "bizTag", required = false) String bizTag,
             @RequestParam(value = "configId", required = false) Long configId,
             @RequestParam(value = "durationSeconds", defaultValue = "3600") Long durationSeconds) {
-        return R.ok(storageService.getStsToken(scene, bizPath, configId, durationSeconds));
+        return R.ok(storageService.getStsToken(scene, bizTag, configId, durationSeconds));
     }
 
     /**

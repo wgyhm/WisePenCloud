@@ -1,8 +1,7 @@
-package com.oriole.wisepen.file.storage.service.impl;
+package com.oriole.wisepen.file.storage.mq;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.oriole.wisepen.file.storage.api.domain.mq.FileUploadedMessage;
-import com.oriole.wisepen.file.storage.service.IStorageEventPublisher;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -13,12 +12,11 @@ import static com.oriole.wisepen.file.storage.api.constant.MqTopicConstants.TOPI
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class KafkaStorageEventPublisherImpl implements IStorageEventPublisher {
+public class KafkaStorageEventPublisher {
 
     private final KafkaTemplate<String, String> kafkaTemplate;
     private final ObjectMapper objectMapper;
 
-    @Override
     public void publishFileUploadedEvent(FileUploadedMessage msg) {
         try {
             // 统一使用 Jackson 序列化

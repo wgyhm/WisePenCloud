@@ -36,7 +36,7 @@ public interface RemoteStorageService {
      */
     @GetMapping("/getStsToken")
     R<StsTokenDTO> getStsToken(@RequestParam("scene") StorageSceneEnum scene,
-                               @RequestParam(value = "bizPath", required = false) String bizPath,
+                               @RequestParam(value = "bizTag", required = false) String bizTag,
                                @RequestParam(value = "configId", required = false) Long configId,
                                @RequestParam(value = "durationSeconds", required = false) Long durationSeconds);
 
