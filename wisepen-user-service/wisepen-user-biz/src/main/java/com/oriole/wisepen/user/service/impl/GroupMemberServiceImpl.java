@@ -152,7 +152,7 @@ public class GroupMemberServiceImpl implements GroupMemberService {
 			throw new ServiceException(GroupErrorCode.TARGET_MEMBER_NOT_EXIST);
 		}
 
-		UserDisplayBase userInfo = userService.getUserDisplayInfoById(userId);
+		UserDisplayBase userInfo = userService.getUserDisplayInfoByIds(Set.of(userId)).get(userId);
 
 		GroupMemberDetailResponse resp = new GroupMemberDetailResponse();
 		BeanUtil.copyProperties(memberEntity, resp);

@@ -2,7 +2,6 @@ package com.oriole.wisepen.user.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.bean.copier.CopyOptions;
-import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.date.DateUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.crypto.digest.BCrypt;
@@ -68,15 +67,6 @@ public class UserServiceImpl implements UserService {
         return userMapper.selectOne(Wrappers.<UserEntity>lambdaQuery()
                 .and(w -> w.eq(UserEntity::getUsername, account).or().eq(UserEntity::getCampusNo, account))
                 .last("LIMIT 1"));
-    }
-
-    @Override
-    public UserDisplayBase getUserDisplayInfoById(Long userId) {
-        if (userId == null) {
-            throw new ServiceException(UserErrorCode.USERNAME_EXISTED);
-        }
-        UserEntity userEntity = userMapper.selectById(userId);
-        return BeanUtil.copyProperties(userEntity, UserDisplayBase.class);
     }
 
     @Override

@@ -4,11 +4,13 @@ import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.util.IdUtil;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.oriole.wisepen.common.core.domain.PageResult;
 import com.oriole.wisepen.common.core.domain.enums.GroupRoleType;
 import com.oriole.wisepen.common.core.domain.enums.GroupType;
 import com.oriole.wisepen.common.core.exception.ServiceException;
+import com.oriole.wisepen.user.api.domain.base.GroupDisplayBase;
 import com.oriole.wisepen.user.api.domain.base.UserDisplayBase;
 import com.oriole.wisepen.user.api.domain.dto.req.GroupCreateRequest;
 import com.oriole.wisepen.user.api.domain.dto.req.GroupDeleteRequest;
@@ -19,6 +21,7 @@ import com.oriole.wisepen.user.api.domain.dto.res.GroupItemInfoResponse;
 import com.oriole.wisepen.user.cache.RedisCacheManager;
 import com.oriole.wisepen.user.domain.entity.GroupEntity;
 import com.oriole.wisepen.user.domain.entity.GroupMemberEntity;
+import com.oriole.wisepen.user.domain.entity.UserEntity;
 import com.oriole.wisepen.user.event.GroupTokenConsumeEvent;
 import com.oriole.wisepen.user.exception.GroupErrorCode;
 import com.oriole.wisepen.user.mapper.GroupMapper;
@@ -32,10 +35,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -155,7 +155,7 @@ public class GroupServiceImpl implements GroupService {
     public GroupItemInfoResponse getGroupBaseInfoById(Long groupId) {
         GroupEntity group = getGroupInfoById(groupId);
         GroupItemInfoResponse resp = BeanUtil.copyProperties(group, GroupItemInfoResponse.class);
-        resp.setOwnerInfo(userService.getUserDisplayInfoById(group.getOwnerId()));
+        resp.setOwnerInfo(userService.getUserDisplayInfoByIds(Set.of(group.getOwnerId())).get(group.getOwnerId()));
         return resp;
     }
 
@@ -163,8 +163,26 @@ public class GroupServiceImpl implements GroupService {
     public GroupDetailInfoResponse getGroupDetailInfoById(Long groupId) {
         GroupEntity group = getGroupInfoById(groupId);
         GroupDetailInfoResponse resp = BeanUtil.copyProperties(group, GroupDetailInfoResponse.class);
-        resp.setOwnerInfo(userService.getUserDisplayInfoById(group.getOwnerId()));
+        resp.setOwnerInfo(userService.getUserDisplayInfoByIds(Set.of(group.getOwnerId())).get(group.getOwnerId()));
         return resp;
+    }
+
+    @Override
+    public Map<Long, GroupDisplayBase> getGroupDisplayInfoByIds(Set<Long> groupIds) {
+        if (CollectionUtils.isEmpty(groupIds)) {
+            return Collections.emptyMap();
+        }
+        List<GroupEntity> groupList = groupMapper.selectBatchIds(groupIds);
+
+        if (CollectionUtils.isEmpty(groupList)) {
+            return Collections.emptyMap();
+        }
+
+        return groupList.stream().filter(Objects::nonNull).collect(Collectors.toMap(
+                GroupEntity::getGroupId,
+                group -> BeanUtil.copyProperties(group, GroupDisplayBase.class),
+                (existing, replacement) -> existing
+        ));
     }
 
     @Override

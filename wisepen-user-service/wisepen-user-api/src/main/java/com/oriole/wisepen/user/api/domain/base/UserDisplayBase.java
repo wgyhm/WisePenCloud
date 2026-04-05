@@ -11,6 +11,7 @@ import java.io.Serializable;
 @Data
 @SuperBuilder
 @NoArgsConstructor
+@AllArgsConstructor
 public class UserDisplayBase implements Serializable {
     private String nickname;
     private String realName;
