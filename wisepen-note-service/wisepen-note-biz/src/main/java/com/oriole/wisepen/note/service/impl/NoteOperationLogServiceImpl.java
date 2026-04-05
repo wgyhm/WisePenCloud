@@ -51,7 +51,7 @@ public class NoteOperationLogServiceImpl implements INoteOperationLogService {
     }
 
     @Override
-    public void deleteAllOpLogsByResourceId(String resourceId) {
-        noteOperationLogRepository.deleteByResourceId(resourceId);
+    public void deleteAllOpLogsByResourceIds(List<String> resourceIds) {
+        noteOperationLogRepository.deleteByResourceIdIn(resourceIds);
     }
 }

@@ -48,20 +48,6 @@ public class NoteController {
         return R.ok(resourceId);
     }
 
-    @Operation(summary = "删除笔记")
-    @PostMapping("/removeNote")
-    public R<Void> deleteNote(@RequestParam String resourceId) {
-        ResourceCheckPermissionResDTO permission = remoteResourceService.checkResPermission(new ResourceCheckPermissionReqDTO(
-                resourceId, SecurityContextHolder.getUserId(), SecurityContextHolder.getGroupRoleMap()
-        )).getData();
-        if (permission.getResourceAccessRole() == ResourceAccessRole.OWNER){
-            noteService.deleteNote(resourceId);
-        } else {
-            throw new ServiceException(NOTE_PERMISSION_DENIED);
-        }
-        return R.ok();
-    }
-
     @Operation(summary = "获取笔记信息")
     @GetMapping("/getNoteInfo")
     public R<NoteInfoResponse> getNoteInfo(@RequestParam String resourceId) {

@@ -5,6 +5,8 @@ import com.oriole.wisepen.note.api.domain.dto.res.NoteSnapshotResponse;
 import com.oriole.wisepen.note.api.domain.dto.res.NoteVersionListResponse;
 import com.oriole.wisepen.note.api.domain.mq.NoteSnapshotMessage;
 
+import java.util.List;
+
 public interface INoteVersionService {
 
     void createVersion(NoteSnapshotMessage noteSnapshotMessage);
@@ -13,5 +15,5 @@ public interface INoteVersionService {
 
     PageResult<NoteVersionListResponse> listVersions(String resourceId, int page, int size);
 
-    void deleteAllVersionsByResourceId(String resourceId);
+    void deleteAllVersionsByResourceIds(List<String> resourceIds);
 }

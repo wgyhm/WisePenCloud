@@ -28,6 +28,7 @@ import java.util.List;
 public class NoteServiceImpl implements INoteService {
 
     private final NoteDocumentRepository noteDocumentRepository;
+
     private final INoteVersionService noteVersionService;
     private final INoteOperationLogService noteOperationLogService;
     private final RemoteResourceService remoteResourceService;
@@ -53,14 +54,15 @@ public class NoteServiceImpl implements INoteService {
 
     @Override
     @Transactional
-    public void deleteNote(String resourceId) {
-        // 远端请求移除 Note
-        remoteResourceService.removeResource(resourceId);
-
+    public void deleteNotes(List<String> resourceIds) {
+        if (resourceIds == null || resourceIds.isEmpty()) {
+            return;
+        }
         // 移除所有内容
-        noteDocumentRepository.deleteByResourceId(resourceId);
-        noteVersionService.deleteAllVersionsByResourceId(resourceId);
-        noteOperationLogService.deleteAllOpLogsByResourceId(resourceId);
+        noteDocumentRepository.deleteByResourceIdIn(resourceIds);
+
+        noteVersionService.deleteAllVersionsByResourceIds(resourceIds);
+        noteOperationLogService.deleteAllOpLogsByResourceIds(resourceIds);
     }
 
     @Override

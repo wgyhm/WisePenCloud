@@ -99,8 +99,8 @@ public class NoteVersionServiceImpl implements INoteVersionService {
     }
 
     @Override
-    public void deleteAllVersionsByResourceId(String resourceId) {
-        noteVersionRepository.deleteByResourceId(resourceId);
+    public void deleteAllVersionsByResourceIds(List<String> resourceIds) {
+        noteVersionRepository.deleteByResourceIdIn(resourceIds);
     }
 
     @Override

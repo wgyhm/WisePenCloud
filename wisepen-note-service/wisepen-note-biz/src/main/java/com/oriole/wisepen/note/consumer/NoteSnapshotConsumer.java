@@ -28,7 +28,8 @@ public class NoteSnapshotConsumer {
     )
     public void onSnapshot(String payload) throws JsonProcessingException {
         NoteSnapshotMessage msg = objectMapper.readValue(payload, NoteSnapshotMessage.class);
+        log.info("接收到 Note 快照（事件） ResourceId={} | Version={} | Type={}", msg.getResourceId(), msg.getVersion(), msg.getType());
         noteVersionService.createVersion(msg);
-        log.info("快照消费完成: resourceId={}, version={}, type={}", msg.getResourceId(), msg.getVersion(), msg.getType());
+        log.info("已处理 Note 快照（事件） ResourceId={} | Version={} | Type={}", msg.getResourceId(), msg.getVersion(), msg.getType());
     }
 }
