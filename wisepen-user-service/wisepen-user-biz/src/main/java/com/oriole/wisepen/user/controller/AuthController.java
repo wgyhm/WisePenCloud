@@ -18,7 +18,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.util.WebUtils;
 
-import static com.oriole.wisepen.common.core.constant.SecurityConstants.COOKIE_AUTHORIZATION_TOKEN;
+import static com.oriole.wisepen.common.core.constant.SecurityConstants.AUTHORIZATION_TOKEN;
 
 @RestController
 @RequestMapping("/auth")
@@ -29,21 +29,19 @@ public class AuthController {
     private final UserService userService;
 
     @PostMapping("/login")
-    public R<Void> login(@Valid @RequestBody AuthLoginRequest loginRequest, HttpServletResponse response) {
+    public R<String> login(@Valid @RequestBody AuthLoginRequest loginRequest, HttpServletResponse response) {
         String sessionId = authService.login(loginRequest);
 
         Cookie cookie = buildAuthCookie(sessionId, 7 * 24 * 60 * 60);
         response.addCookie(cookie);
-        return R.ok();
+        // 返回 sessionId，以备加入请求头中
+        return R.ok(sessionId);
     }
 
     @CheckLogin
     @PostMapping("/logout")
-    public R<Void> logout(HttpServletRequest request, HttpServletResponse response) {
-        String sessionId = null;
-
-        Cookie cookie = WebUtils.getCookie(request, COOKIE_AUTHORIZATION_TOKEN);
-        sessionId = (cookie != null) ? cookie.getValue() : null;
+    public R<Void> logout(HttpServletResponse response) {
+        String sessionId = SecurityContextHolder.getUserAuthToken();
 
         if (StrUtil.isNotBlank(sessionId)) {
             authService.logout(sessionId, SecurityContextHolder.getUserId());
@@ -56,7 +54,7 @@ public class AuthController {
     }
 
     private Cookie buildAuthCookie (String value, Integer maxAge) {
-        Cookie cookie = new Cookie(COOKIE_AUTHORIZATION_TOKEN, value);
+        Cookie cookie = new Cookie(AUTHORIZATION_TOKEN, value);
         cookie.setPath("/");
         cookie.setHttpOnly(true); // 严禁前端 JS 读取，防 XSS
         // cookie.setSecure(true); // HTTPS 务必开启此项

@@ -47,10 +47,10 @@ public class SecurityContextHolder {
     }
 
     // 设置当前用户认证令牌
-    public static void setUserAuthToken(String authToken) { set(SecurityConstants.COOKIE_AUTHORIZATION_TOKEN, authToken); }
+    public static void setUserAuthToken(String authToken) { set(SecurityConstants.AUTHORIZATION_TOKEN, authToken); }
 
     // 获取当前用户认证令牌
-    public static String getUserAuthToken() { return get(SecurityConstants.COOKIE_AUTHORIZATION_TOKEN, String.class); }
+    public static String getUserAuthToken() { return get(SecurityConstants.AUTHORIZATION_TOKEN, String.class); }
 
     // 设置当前用户ID
     public static void setUserId(Long userId) { set(SecurityConstants.HEADER_USER_ID, userId); }

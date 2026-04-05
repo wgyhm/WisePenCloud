@@ -35,8 +35,11 @@ public class HeaderInterceptor implements HandlerInterceptor {
         }
 
         // 从 Cookie 中获取 AUTHORIZATION_TOKEN
-        Cookie cookie = WebUtils.getCookie(request, SecurityConstants.COOKIE_AUTHORIZATION_TOKEN);
-        String userAuthTokenStr = cookie!=null ? cookie.getValue() : null;
+        Cookie cookie = WebUtils.getCookie(request, SecurityConstants.AUTHORIZATION_TOKEN);
+        String userAuthTokenStr = cookie != null ?
+                cookie.getValue() :
+                // 如果无法从 Cookie 中获取，则尝试从 Header 中获取 AUTHORIZATION_TOKEN
+                request.getHeader(SecurityConstants.AUTHORIZATION_TOKEN);
 
         // 从 Header 中获取 APISIX 透传的明文信息
         String userIdStr = request.getHeader(SecurityConstants.HEADER_USER_ID);
