@@ -69,7 +69,7 @@ public class GroupServiceImpl implements IGroupService {
     }
 
     @Override
-    public void createGroup(GroupCreateRequest req, Long userId) {
+    public Long createGroup(GroupCreateRequest req, Long userId) {
         GroupEntity group = GroupEntity.builder()
                 .ownerId(userId)
                 .inviteCode(IdUtil.fastSimpleUUID().substring(0, 8))
@@ -81,6 +81,7 @@ public class GroupServiceImpl implements IGroupService {
         groupMapper.insert(group);
         groupMemberService.joinGroup(group.getGroupId(), userId, GroupRoleType.OWNER);
         redisCacheManager.blockGroupChat(group.getGroupId());
+        return group.getGroupId();
     }
 
     @Override
