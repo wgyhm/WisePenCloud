@@ -410,11 +410,13 @@ public class GroupMemberServiceImpl implements GroupMemberService {
 		user.setTokenBalance(user.getTokenBalance() - tokenRest);
 		user.setTokenUsed(user.getTokenUsed()+tokenRest);
 		userWalletsMapper.updateById(user);
+		UserEntity userProfile= userMapper.selectById(userId);
 
 		TokenRecordEntity tokenRecordEntity = TokenRecordEntity.builder()
 				.traceId(message.getTraceId()).tokenCount(-message.getUsageTokens()*message.getModelType().getRatio())
 				.changeType(ChangeType.SPEND).ownerType(ConsumerType.USER)
 				.createTime(LocalDateTime.now()).meta(message.getModelType().getDesc())
+				.operatorName(userProfile.getRealName())
 				.targetId(userId)
 				.build();
 		tokenRecordMapper.insert(tokenRecordEntity);
