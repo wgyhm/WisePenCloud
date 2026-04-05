@@ -18,18 +18,19 @@ import com.oriole.wisepen.user.api.domain.dto.req.GroupMemberJoinRequest;
 import com.oriole.wisepen.user.api.domain.dto.req.GroupUpdateRequest;
 import com.oriole.wisepen.user.api.domain.dto.res.GroupDetailInfoResponse;
 import com.oriole.wisepen.user.api.domain.dto.res.GroupItemInfoResponse;
+import com.oriole.wisepen.user.api.enums.TokenTransferType;
 import com.oriole.wisepen.user.cache.RedisCacheManager;
 import com.oriole.wisepen.user.domain.entity.GroupEntity;
 import com.oriole.wisepen.user.domain.entity.GroupMemberEntity;
-import com.oriole.wisepen.user.domain.entity.UserEntity;
 import com.oriole.wisepen.user.event.GroupTokenConsumeEvent;
 import com.oriole.wisepen.user.exception.GroupErrorCode;
 import com.oriole.wisepen.user.mapper.GroupMapper;
 import com.oriole.wisepen.user.mapper.GroupMemberMapper;
 import com.oriole.wisepen.resource.feign.RemoteResourceService;
-import com.oriole.wisepen.user.service.GroupMemberService;
-import com.oriole.wisepen.user.service.GroupService;
-import com.oriole.wisepen.user.service.UserService;
+import com.oriole.wisepen.user.service.IGroupMemberService;
+import com.oriole.wisepen.user.service.IGroupService;
+import com.oriole.wisepen.user.service.IUserService;
+import com.oriole.wisepen.user.service.IWalletService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
@@ -41,12 +42,13 @@ import java.util.stream.Collectors;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class GroupServiceImpl implements GroupService {
+public class GroupServiceImpl implements IGroupService {
 
     private final GroupMapper groupMapper;
     private final GroupMemberMapper groupMemberMapper;
-    private final UserService userService;
-    private final GroupMemberService groupMemberService;
+    private final IUserService userService;
+    private final IGroupMemberService groupMemberService;
+    private final IWalletService walletService;
     private final RedisCacheManager redisCacheManager;
     private final RemoteResourceService remoteResourceService;
 
@@ -99,7 +101,7 @@ public class GroupServiceImpl implements GroupService {
         if (group == null) {
             throw new ServiceException(GroupErrorCode.GROUP_NOT_EXIST);
         }
-        groupMemberService.exchangeTokenToOwner(userId, groupId, group.getTokenUsed());
+        walletService.transferTokenBetweenGroupAndUser(userId, groupId, group.getTokenBalance(), TokenTransferType.USER_INFLOW);
         groupMapper.deleteById(groupId);
         groupMemberService.removeAllGroupMembers(groupId);
 
@@ -185,45 +187,5 @@ public class GroupServiceImpl implements GroupService {
                 group -> BeanUtil.copyProperties(group, GroupDisplayBase.class),
                 (existing, replacement) -> existing
         ));
-    }
-
-    @Override
-    public void refillGroupTokenBalance(Long groupId, Integer rechargedToken) {
-        GroupEntity group = groupMapper.selectById(groupId);
-        if (group == null) {
-            throw new ServiceException(GroupErrorCode.GROUP_NOT_EXIST);
-        }
-
-        if (GroupType.NORMAL_GROUP.equals(group.getGroupType())) {
-            throw new ServiceException(GroupErrorCode.GROUP_HAS_NO_QUOTA);
-        }
-
-        LambdaUpdateWrapper<GroupEntity> wrapper = new LambdaUpdateWrapper<>();
-        wrapper.eq(GroupEntity::getGroupId, groupId)
-                .setSql("token_balance = token_balance + " + rechargedToken);
-
-        groupMapper.update(null, wrapper);
-        redisCacheManager.unblockGroupChat(groupId);
-    }
-
-    @Override
-    public void updateGroupTokenUsed(Long groupId, Integer usedToken) {
-        LambdaUpdateWrapper<GroupEntity> wrapper = new LambdaUpdateWrapper<>();
-        wrapper.eq(GroupEntity::getGroupId, groupId)
-                .setSql("token_used = token_used + " + usedToken)
-                .setSql("token_balance = token_balance - " + usedToken);
-
-        groupMapper.update(null, wrapper);
-
-        GroupEntity group = groupMapper.selectById(groupId);
-        if (group != null && group.getTokenBalance() <= 0) {
-            redisCacheManager.blockGroupChat(groupId);
-            log.warn("群组 {} 余额已欠费透支，当前余额: {}，已触发 Redis 熔断", groupId, group.getTokenBalance());
-        }
-    }
-
-    @EventListener
-    public void handleGroupTokenConsumeEvent(GroupTokenConsumeEvent event) {
-        this.updateGroupTokenUsed(event.getGroupId(), event.getUsedToken());
     }
 }

@@ -4,8 +4,8 @@ import com.oriole.wisepen.common.core.domain.R;
 import com.oriole.wisepen.user.api.domain.base.GroupDisplayBase;
 import com.oriole.wisepen.user.api.domain.base.UserDisplayBase;
 import com.oriole.wisepen.user.api.feign.RemoteUserService;
-import com.oriole.wisepen.user.service.GroupService;
-import com.oriole.wisepen.user.service.UserService;
+import com.oriole.wisepen.user.service.IGroupService;
+import com.oriole.wisepen.user.service.IUserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -20,8 +20,8 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class InternalController implements RemoteUserService {
 
-    private final UserService userService;
-    private final GroupService groupService;
+    private final IUserService userService;
+    private final IGroupService groupService;
 
     @PostMapping("/user/getUserDisplayInfo")
     public R<Map<Long, UserDisplayBase>> getUserDisplayInfo(List<Long> userIds) {

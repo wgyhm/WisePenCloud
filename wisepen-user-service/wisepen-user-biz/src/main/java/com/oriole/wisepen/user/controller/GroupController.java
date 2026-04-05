@@ -15,7 +15,7 @@ import com.oriole.wisepen.user.api.domain.dto.req.GroupMemberJoinRequest;
 import com.oriole.wisepen.user.api.domain.dto.req.GroupUpdateRequest;
 import com.oriole.wisepen.user.api.domain.dto.res.GroupDetailInfoResponse;
 import com.oriole.wisepen.user.api.domain.dto.res.GroupItemInfoResponse;
-import com.oriole.wisepen.user.service.GroupService;
+import com.oriole.wisepen.user.service.IGroupService;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.Valid;
@@ -30,7 +30,7 @@ import org.springframework.web.bind.annotation.*;
 @CheckLogin
 public class GroupController {
 
-	private final GroupService groupService;
+	private final IGroupService groupService;
 
 	@PostMapping("/joinGroup")
 	public R<Void> joinGroup(@RequestBody @Valid GroupMemberJoinRequest req) {

@@ -1,6 +1,6 @@
-package com.oriole.wisepen.user.domain.entity;
+package com.oriole.wisepen.user.api.domain.mq;
 
-import com.oriole.wisepen.common.core.domain.enums.ModelType;
+import com.oriole.wisepen.user.api.enums.ModelType;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -13,7 +13,7 @@ import java.time.LocalDateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class TokenCalculateMessage implements Serializable{
+public class TokenConsumptionMessage implements Serializable{
 	private Long userId;
 	private Long groupId;
 	private Integer usageTokens;

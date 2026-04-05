@@ -5,9 +5,9 @@ import com.oriole.wisepen.user.api.domain.base.GroupDisplayBase;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
-@EqualsAndHashCode(callSuper = true)
 @Data
-public class GroupMemberGetGroupTokenResponse extends GroupDisplayBase {
+public class GroupMemberTokenDetailResponse {
+	GroupDisplayBase groupDisplayBase;
 	Integer tokenUsed;
 	Integer tokenLimit;
 }

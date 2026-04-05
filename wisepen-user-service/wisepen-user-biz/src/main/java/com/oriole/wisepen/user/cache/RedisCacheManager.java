@@ -27,6 +27,7 @@ public class RedisCacheManager {
 	private static final String REDIS_SESSION_TO_USER_PREFIX = "wisepen:user:auth:user2session:";
 	private static final String REDIS_GROUP_CHAT_BLOCK_PREFIX = "wisepen:chat:block:group:";
 	private static final String REDIS_GROUP_MEMBER_CHAT_BLOCK_PREFIX = "wisepen:chat:block:member:";
+	private static final String REDIS_GROUP_USER_BLOCK_PREFIX = "wisepen:chat:block:user:";
 	private static final String REDIS_EMAIL_VERIFY_TOKEN_PREFIX = "wisepen:user:auth:verify:";
     private static final long SESSION_TIMEOUT_DAYS = 7;
 
@@ -136,5 +137,13 @@ public class RedisCacheManager {
 	}
 	public void unblockGroupMemberChat(Long groupId, Long userId) {
 		stringRedisTemplate.delete(REDIS_GROUP_MEMBER_CHAT_BLOCK_PREFIX + groupId + ":" + userId);
+	}
+
+	// 封印/解封 个人Chat
+	public void blockUserChat(Long groupId) {
+		stringRedisTemplate.opsForValue().set(REDIS_GROUP_USER_BLOCK_PREFIX + groupId, "1");
+	}
+	public void unblockUserChat(Long groupId) {
+		stringRedisTemplate.delete(REDIS_GROUP_USER_BLOCK_PREFIX + groupId);
 	}
 }

@@ -1,4 +1,4 @@
-package com.oriole.wisepen.common.core.domain.enums;
+package com.oriole.wisepen.user.api.enums;
 
 import com.baomidou.mybatisplus.annotation.EnumValue;
 import com.fasterxml.jackson.annotation.JsonValue;
@@ -19,11 +19,4 @@ public enum ModelType {
 	private final int code;
 	private final String desc;
 	private final int ratio;
-	public static ModelType getByCode(Integer code) {
-		if (code == null) {return null;}
-		return Arrays.stream(values())
-				.filter(t -> t.getCode() == code)
-				.findFirst()
-				.orElse(null);
-	}
 }

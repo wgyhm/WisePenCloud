@@ -13,7 +13,7 @@ import com.oriole.wisepen.user.api.domain.dto.res.GroupItemInfoResponse;
 import java.util.Map;
 import java.util.Set;
 
-public interface GroupService {
+public interface IGroupService {
 
     // 根据 groupId 获取小组详细信息
     GroupDetailInfoResponse getGroupDetailInfoById(Long groupId);
@@ -35,9 +35,4 @@ public interface GroupService {
 
     // 获取指定用户的群组分页列表
     PageResult<GroupItemInfoResponse> getGroupList(Long userId, GroupRoleType groupRoleType, int page, int size);
-
-    // 充值Token余额
-    void refillGroupTokenBalance(Long groupId, Integer rechargedToken);
-    // 更新组Token用量
-    void updateGroupTokenUsed(Long groupId, Integer usedToken);
 }

@@ -10,7 +10,7 @@ import com.oriole.wisepen.user.api.domain.dto.req.*;
 import com.oriole.wisepen.user.api.enums.Status;
 import com.oriole.wisepen.user.domain.entity.UserEntity;
 import com.oriole.wisepen.user.domain.entity.UserProfileEntity;
-import com.oriole.wisepen.user.service.UserService;
+import com.oriole.wisepen.user.service.IUserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -21,7 +21,7 @@ import org.springframework.web.bind.annotation.*;
 @CheckRole(IdentityType.ADMIN)
 public class AdminUserController {
 
-    private final UserService userService;
+    private final IUserService userService;
 
     @GetMapping("/getUserList")
     @Log(title = "管理员查询用户列表", businessType = BusinessType.SELECT)

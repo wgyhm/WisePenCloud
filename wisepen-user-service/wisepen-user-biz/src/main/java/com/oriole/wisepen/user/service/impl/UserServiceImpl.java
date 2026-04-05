@@ -25,17 +25,16 @@ import com.oriole.wisepen.user.api.enums.Status;
 import com.oriole.wisepen.user.cache.RedisCacheManager;
 import com.oriole.wisepen.user.domain.entity.UserEntity;
 import com.oriole.wisepen.user.domain.entity.UserProfileEntity;
-import com.oriole.wisepen.user.domain.entity.UserTokenPoolEntity;
+import com.oriole.wisepen.user.domain.entity.UserWalletEntity;
 import com.oriole.wisepen.user.exception.UserErrorCode;
 import com.oriole.wisepen.user.mapper.UserWalletsMapper;
-import com.oriole.wisepen.user.service.UserService;
+import com.oriole.wisepen.user.service.IUserService;
 import com.oriole.wisepen.user.mapper.UserMapper;
 import com.oriole.wisepen.user.mapper.UserProfileMapper;
 import com.oriole.wisepen.user.strategy.UserVerificationStrategy;
 import com.oriole.wisepen.user.strategy.VerificationStrategyFactory;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.catalina.User;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.thymeleaf.TemplateEngine;
@@ -47,7 +46,7 @@ import java.util.stream.Collectors;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class UserServiceImpl implements UserService {
+public class UserServiceImpl implements IUserService {
 
     private final UserMapper userMapper;
     private final UserProfileMapper userProfileMapper;
@@ -111,7 +110,7 @@ public class UserServiceImpl implements UserService {
                 .build();
         userProfileMapper.insert(userProfile);
 
-        UserTokenPoolEntity userWallets = new UserTokenPoolEntity();
+        UserWalletEntity userWallets = new UserWalletEntity();
         userWallets.setUserId(user.getUserId());
         userWallets.setTokenBalance(0);
         userWallets.setTokenUsed(0);
