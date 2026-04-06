@@ -11,12 +11,15 @@ import com.oriole.wisepen.resource.domain.dto.req.TagUpdateRequest;
 import com.oriole.wisepen.resource.domain.dto.res.TagTreeResponse;
 import com.oriole.wisepen.resource.domain.entity.TagEntity;
 import com.oriole.wisepen.resource.enums.ResourceAction;
+import com.oriole.wisepen.resource.event.TagChangedEvent;
+import com.oriole.wisepen.resource.event.TagDeletedEvent;
+import com.oriole.wisepen.resource.event.TagTrashedEvent;
 import com.oriole.wisepen.resource.exception.ResPermissionErrorCode;
 import com.oriole.wisepen.resource.repository.TagRepository;
-import com.oriole.wisepen.resource.service.IResourceService;
 import com.oriole.wisepen.resource.service.ITagService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
@@ -34,8 +37,9 @@ import static com.oriole.wisepen.resource.exception.ResPermissionErrorCode.CANNO
 public class TagServiceImpl implements ITagService {
 
     private final TagRepository tagRepository;
-    private final IResourceService resourceService;
     private final MongoTemplate mongoTemplate;
+
+    private final ApplicationEventPublisher eventPublisher;
 
     @Override
     public String createTag(TagCreateRequest tagCreateRequest) {
@@ -76,10 +80,10 @@ public class TagServiceImpl implements ITagService {
             TagEntity parent = tagRepository.findByGroupIdAndTagId(groupID, parentId)
                     .orElseThrow(() -> new ServiceException(ResPermissionErrorCode.PARENT_TAG_NOT_FOUND));
 
-            // 跨类型校验，FOLDER Tag只能在FOLDER Tag下创建，Normal Tag只能在Normal Tag下创建
-            if (!Objects.equals(parent.getIsPath(), entity.getIsPath())) {
-                throw new ServiceException(ResPermissionErrorCode.CROSS_TYPE_OPERATION_NOT_ALLOWED);
-            }
+//            // 跨类型校验，FOLDER Tag只能在FOLDER Tag下创建，Normal Tag只能在Normal Tag下创建
+//            if (!Objects.equals(parent.getIsPath(), entity.getIsPath())) {
+//                throw new ServiceException(ResPermissionErrorCode.CROSS_TYPE_OPERATION_NOT_ALLOWED);
+//            }
 
             // 设定Tag身份
             // FOLDER Tag只能在FOLDER Tag下创建，Normal Tag只能在Normal Tag下创建
@@ -308,7 +312,9 @@ public class TagServiceImpl implements ITagService {
         if (isNodeInTrash(groupID, newParentId) == TagType.TRASH) {
             List<String> affectedTagIds = descendants.stream().map(TagEntity::getTagId).collect(Collectors.toList());
             affectedTagIds.add(targetId);
-            resourceService.stripGroupPermission(affectedTagIds); // 调用资源服务去剥夺小组共享
+
+            // 发布移入回收站事件
+            eventPublisher.publishEvent(new TagTrashedEvent(affectedTagIds));
         } else {
             // 正常的移动，通知所有挂在它以及它子孙节点上的资源重新计算权限
             afterTagNodeChanged(groupID, targetId, groupID.startsWith(ResourceConstants.PERSONAL_GROUP_PREFIX));
@@ -346,8 +352,8 @@ public class TagServiceImpl implements ITagService {
         // 依靠 ancestors 数组，一键删除所有子孙节点
         tagRepository.deleteByGroupIdAndAncestorsContaining(groupID, targetId);
 
-        // 资源解绑被删除的Tag（在非个人Tag时，该方法会触发资源权限的重新计算）
-        resourceService.afterTagNodeDeleted(deletedTagIds, groupID.startsWith(ResourceConstants.PERSONAL_GROUP_PREFIX), targetNode.getIsPath());
+        // 发布彻底删除事件
+        eventPublisher.publishEvent(new TagDeletedEvent(deletedTagIds, groupID.startsWith(ResourceConstants.PERSONAL_GROUP_PREFIX), targetNode.getIsPath()));
     }
 
     // 判断目标父节点是否为回收站，或处于回收站的子孙层级中
@@ -390,7 +396,8 @@ public class TagServiceImpl implements ITagService {
         List<TagEntity> descendants = tagRepository.findByGroupIdAndAncestorsContaining(groupId, tagId);
         List<String> changedTagIds = descendants.stream().map(TagEntity::getTagId).collect(Collectors.toList());
         changedTagIds.add(tagId);
-        resourceService.afterTagNodeChanged(changedTagIds, isPersonalTag);
+        // 发布标签变更事件
+        eventPublisher.publishEvent(new TagChangedEvent(changedTagIds, isPersonalTag));
     }
 
     @Override
@@ -413,8 +420,8 @@ public class TagServiceImpl implements ITagService {
                 TAGS_TRASH_COLLECTION
         );
         List<String> allTagIds = tags.stream().map(TagEntity::getTagId).collect(Collectors.toList());
-        resourceService.afterTagNodeDeleted(allTagIds, false, false);
-
+        // 发布彻底删除事件
+        eventPublisher.publishEvent(new TagDeletedEvent(allTagIds, false, false));
         mongoTemplate.remove(
                 Query.query(Criteria.where("groupId").is(groupId)),
                 TAGS_TRASH_COLLECTION
