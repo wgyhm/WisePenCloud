@@ -7,7 +7,6 @@ import com.oriole.wisepen.file.storage.config.StorageProperties;
 import com.oriole.wisepen.file.storage.domain.entity.StorageRecordEntity;
 import com.oriole.wisepen.file.storage.strategy.StorageManager;
 import com.oriole.wisepen.file.storage.mapper.StorageRecordMapper;
-import com.oriole.wisepen.file.storage.service.IStorageEventPublisher;
 import com.oriole.wisepen.file.storage.service.IStorageService;
 import com.oriole.wisepen.file.storage.strategy.StorageProvider;
 import lombok.RequiredArgsConstructor;
