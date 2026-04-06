@@ -22,6 +22,9 @@ import com.oriole.wisepen.resource.enums.ResourceAccessRole;
 import com.oriole.wisepen.resource.enums.ResourceAction;
 import com.oriole.wisepen.resource.enums.ResourceSortBy;
 import com.oriole.wisepen.resource.enums.AclGrantMode;
+import com.oriole.wisepen.resource.event.TagChangedEvent;
+import com.oriole.wisepen.resource.event.TagDeletedEvent;
+import com.oriole.wisepen.resource.event.TagTrashedEvent;
 import com.oriole.wisepen.resource.exception.ResPermissionErrorCode;
 import com.oriole.wisepen.resource.repository.CustomResourceItemRepository;
 import com.oriole.wisepen.resource.repository.GroupResConfigRepository;
@@ -45,6 +48,7 @@ import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.event.TransactionalEventListener;
 import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
@@ -69,6 +73,21 @@ public class ResourceServiceImpl implements IResourceService {
     private final ITagService tagService;
 
     private final RemoteUserService remoteUserService;
+
+    @TransactionalEventListener
+    public void handleTagTrashedEvent(TagTrashedEvent event) {
+        this.stripGroupPermission(event.getTrashedTagIds());
+    }
+
+    @TransactionalEventListener
+    public void handleTagChangedEvent(TagChangedEvent event) {
+        this.afterTagNodeChanged(event.getChangedTagIds(), event.getIsPersonalTag());
+    }
+
+    @TransactionalEventListener
+    public void handleTagDeletedEvent(TagDeletedEvent event) {
+        this.afterTagNodeDeleted(event.getDeletedTagIds(), event.getIsPersonalTag(), event.getIsPathTag());
+    }
 
     @Override
     public void assertResourceOwner(String resourceId, String userId) {
