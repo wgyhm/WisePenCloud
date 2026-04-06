@@ -76,7 +76,7 @@ public class DocumentConversionAndParseConsumer {
     private void process(DocumentParseTaskMessage msg) throws IOException, InterruptedException {
 
         DocumentStatus status = documentService.getDocumentStatus(msg.getDocumentId()).orElse(null);
-        if (status != null && status.getStatus() == DocumentStatusEnum.UPLOADED) {
+        if (status != null && status.getStatus() != DocumentStatusEnum.UPLOADED) {
             log.info("文档处理前置状态异常，跳过解析 DocumentId={}", msg.getDocumentId());
             return;
         }

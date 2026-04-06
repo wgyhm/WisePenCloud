@@ -90,6 +90,7 @@ public class DocumentServiceImpl implements IDocumentService {
         DocumentInfoEntity doc = DocumentInfoEntity.builder()
                 .documentId(documentId)
                 .uploadMeta(meta)
+                .sourceObjectKey(uploadInitRespDTO.getObjectKey())
                 .documentStatus(new DocumentStatus(DocumentStatusEnum.UPLOADING)).build();
         documentInfoRepository.save(doc);
 
@@ -226,7 +227,13 @@ public class DocumentServiceImpl implements IDocumentService {
                 entity.setDocumentStatus(new DocumentStatus(DocumentStatusEnum.UPLOADED));
                 entity.setSourceObjectKey(storageRecordDTO.getObjectKey());
                 documentInfoRepository.save(entity);
-                eventPublisher.publishParseTask(BeanUtil.copyProperties(entity, DocumentParseTaskMessage.class));
+                eventPublisher.publishParseTask(
+                        DocumentParseTaskMessage.builder()
+                                .documentId(documentId)
+                                .sourceObjectKey(storageRecordDTO.getObjectKey())
+                                .fileType(entity.getUploadMeta().getFileType())
+                                .build()
+                );
             }
             return entity.getDocumentStatus();
         }
