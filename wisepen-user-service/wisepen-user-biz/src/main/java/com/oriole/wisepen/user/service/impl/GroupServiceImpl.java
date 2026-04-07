@@ -2,7 +2,6 @@ package com.oriole.wisepen.user.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.util.IdUtil;
-import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -18,12 +17,11 @@ import com.oriole.wisepen.user.api.domain.dto.req.GroupMemberJoinRequest;
 import com.oriole.wisepen.user.api.domain.dto.req.GroupUpdateRequest;
 import com.oriole.wisepen.user.api.domain.dto.res.GroupDetailInfoResponse;
 import com.oriole.wisepen.user.api.domain.dto.res.GroupItemInfoResponse;
-import com.oriole.wisepen.user.api.enums.GroupListType;
+import com.oriole.wisepen.user.api.enums.GroupRoleFilter;
 import com.oriole.wisepen.user.api.enums.TokenTransferType;
 import com.oriole.wisepen.user.cache.RedisCacheManager;
 import com.oriole.wisepen.user.domain.entity.GroupEntity;
 import com.oriole.wisepen.user.domain.entity.GroupMemberEntity;
-import com.oriole.wisepen.user.event.GroupTokenConsumeEvent;
 import com.oriole.wisepen.user.exception.GroupErrorCode;
 import com.oriole.wisepen.user.mapper.GroupMapper;
 import com.oriole.wisepen.user.mapper.GroupMemberMapper;
@@ -34,7 +32,6 @@ import com.oriole.wisepen.user.service.IUserService;
 import com.oriole.wisepen.user.service.IWalletService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -117,13 +114,15 @@ public class GroupServiceImpl implements IGroupService {
     }
 
     @Override
-    public PageResult<GroupItemInfoResponse> getGroupList(Long userId, GroupListType groupListType, int page, int size) {
+    public PageResult<GroupItemInfoResponse> getGroupList(Long userId, GroupRoleFilter groupRoleFilter, int page, int size) {
         Page<GroupMemberEntity> memberPage = new Page<>(page, size);
 
         LambdaQueryWrapper<GroupMemberEntity> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(GroupMemberEntity::getUserId, userId);
-        if (groupListType == GroupListType.MANAGE) {
-            wrapper.in(GroupMemberEntity::getRole, 1,2);
+        if (groupRoleFilter == GroupRoleFilter.MANAGED) {
+            wrapper.in(GroupMemberEntity::getRole, GroupRoleType.ADMIN, GroupRoleType.OWNER);
+        } else {
+            wrapper.in(GroupMemberEntity::getRole, GroupRoleType.MEMBER);
         }
         Page<GroupMemberEntity> resultPage = groupMemberMapper.selectPage(memberPage, wrapper);
 

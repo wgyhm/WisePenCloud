@@ -1,7 +1,6 @@
 package com.oriole.wisepen.user.service;
 
 import com.oriole.wisepen.common.core.domain.PageResult;
-import com.oriole.wisepen.common.core.domain.enums.GroupRoleType;
 import com.oriole.wisepen.user.api.domain.base.GroupDisplayBase;
 import com.oriole.wisepen.user.api.domain.dto.req.GroupCreateRequest;
 import com.oriole.wisepen.user.api.domain.dto.req.GroupDeleteRequest;
@@ -9,7 +8,7 @@ import com.oriole.wisepen.user.api.domain.dto.req.GroupMemberJoinRequest;
 import com.oriole.wisepen.user.api.domain.dto.req.GroupUpdateRequest;
 import com.oriole.wisepen.user.api.domain.dto.res.GroupDetailInfoResponse;
 import com.oriole.wisepen.user.api.domain.dto.res.GroupItemInfoResponse;
-import com.oriole.wisepen.user.api.enums.GroupListType;
+import com.oriole.wisepen.user.api.enums.GroupRoleFilter;
 
 import java.util.Map;
 import java.util.Set;
@@ -35,5 +34,5 @@ public interface IGroupService {
     void deleteGroup(Long userId, GroupDeleteRequest req);
 
     // 获取指定用户的群组分页列表
-    PageResult<GroupItemInfoResponse> getGroupList(Long userId, GroupListType groupRoleType, int page, int size);
+    PageResult<GroupItemInfoResponse> getGroupList(Long userId, GroupRoleFilter groupRoleFilter, int page, int size);
 }
