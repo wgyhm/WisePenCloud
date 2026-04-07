@@ -9,6 +9,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.oriole.wisepen.common.core.domain.PageResult;
+import com.oriole.wisepen.user.api.domain.base.UserDisplayBase;
 import com.oriole.wisepen.user.api.domain.dto.req.WalletTransferTokenRequest;
 import com.oriole.wisepen.user.api.enums.*;
 import com.oriole.wisepen.common.core.domain.enums.GroupType;
@@ -32,9 +33,7 @@ import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -44,6 +43,7 @@ public class WalletServiceImpl implements IWalletService {
 
     private final ApplicationEventPublisher eventPublisher;
 
+    private final UserServiceImpl userService;
     private final GroupMapper groupMapper;
     private final GroupMemberMapper groupMemberMapper;
     private final UserWalletsMapper userWalletsMapper;
@@ -93,7 +93,7 @@ public class WalletServiceImpl implements IWalletService {
         // 记录日志
         TokenTransactionRecordEntity record = TokenTransactionRecordEntity.builder()
                 .traceId(IdUtil.randomUUID())
-                .payerId(groupId).payerType(TokenPayerType.USER)
+                .payerId(groupId).payerType(TokenPayerType.GROUP)
                 .tokenCount(changedToken)
                 .tokenTransactionType(type).operatorId(operator).meta(Meta).build();
         tokenTransactionRecordMapper.insert(record);
@@ -271,7 +271,7 @@ public class WalletServiceImpl implements IWalletService {
     @Override
     public void transferTokenBetweenGroupAndUser(Long userId, Long groupId, Integer tokenCount, TokenTransferType tokenTransferType) {
         GroupEntity groupEntity = groupMapper.selectById(groupId);
-        UserWalletEntity userWalletEntity = userWalletsMapper.selectById(groupId);
+        UserWalletEntity userWalletEntity = userWalletsMapper.selectById(userId);
 
         if (GroupType.ADVANCED_GROUP != groupEntity.getGroupType()) {
             throw new ServiceException(GroupErrorCode.GROUP_HAS_NO_QUOTA);
@@ -341,8 +341,26 @@ public class WalletServiceImpl implements IWalletService {
             return pageResult;
         }
 
+        // 提取所有不为空的 operatorId，去重收集到 Set 中
+        Set<Long> operatorIds = transactionPage.getRecords().stream()
+                .map(TokenTransactionRecordEntity::getOperatorId)
+                .filter(Objects::nonNull) // 防御性编程：过滤掉为 null 的 ID
+                .collect(Collectors.toSet());
+
+        // 批量查询用户信息
+        Map<Long, UserDisplayBase> operatorInfoMap = operatorIds.isEmpty() ?
+                Collections.emptyMap() :
+                userService.getUserDisplayInfoByIds(operatorIds);
+
+        // 遍历组装返回值
         List<WalletTransactionRecordResponse> records = transactionPage.getRecords().stream()
-                .map(record -> BeanUtil.copyProperties(record, WalletTransactionRecordResponse.class))
+                .map(record -> {
+                    WalletTransactionRecordResponse response = BeanUtil.copyProperties(record, WalletTransactionRecordResponse.class);
+                    if (record.getOperatorId() != null) {
+                        response.setOperator(operatorInfoMap.get(record.getOperatorId()));
+                    }
+                    return response;
+                })
                 .collect(Collectors.toList());
         pageResult.addAll(records);
         return pageResult;

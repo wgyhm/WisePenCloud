@@ -23,7 +23,7 @@ public interface IGroupService {
     Map<Long, GroupDisplayBase> getGroupDisplayInfoByIds(Set<Long> groupIds);
 
     // 创建群组
-    void createGroup(GroupCreateRequest req, Long userId);
+    Long createGroup(GroupCreateRequest req, Long userId);
     // 加入群组
     void joinGroup(GroupMemberJoinRequest req, Long userId, Set<Long> userJoinedGroupIds);
 
