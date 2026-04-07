@@ -18,6 +18,7 @@ import com.oriole.wisepen.user.api.domain.dto.req.GroupMemberJoinRequest;
 import com.oriole.wisepen.user.api.domain.dto.req.GroupUpdateRequest;
 import com.oriole.wisepen.user.api.domain.dto.res.GroupDetailInfoResponse;
 import com.oriole.wisepen.user.api.domain.dto.res.GroupItemInfoResponse;
+import com.oriole.wisepen.user.api.enums.GroupListType;
 import com.oriole.wisepen.user.api.enums.TokenTransferType;
 import com.oriole.wisepen.user.cache.RedisCacheManager;
 import com.oriole.wisepen.user.domain.entity.GroupEntity;
@@ -116,13 +117,13 @@ public class GroupServiceImpl implements IGroupService {
     }
 
     @Override
-    public PageResult<GroupItemInfoResponse> getGroupList(Long userId, GroupRoleType groupRoleType, int page, int size) {
+    public PageResult<GroupItemInfoResponse> getGroupList(Long userId, GroupListType groupListType, int page, int size) {
         Page<GroupMemberEntity> memberPage = new Page<>(page, size);
 
         LambdaQueryWrapper<GroupMemberEntity> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(GroupMemberEntity::getUserId, userId);
-        if (groupRoleType != null) {
-            wrapper.eq(GroupMemberEntity::getRole, groupRoleType.getCode());
+        if (groupListType == GroupListType.MANAGE) {
+            wrapper.in(GroupMemberEntity::getRole, 1,2);
         }
         Page<GroupMemberEntity> resultPage = groupMemberMapper.selectPage(memberPage, wrapper);
 
