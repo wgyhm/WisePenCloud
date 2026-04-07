@@ -93,7 +93,7 @@ public class WalletServiceImpl implements IWalletService {
         // 记录日志
         TokenTransactionRecordEntity record = TokenTransactionRecordEntity.builder()
                 .traceId(IdUtil.randomUUID())
-                .payerId(groupId).payerType(TokenPayerType.USER)
+                .payerId(groupId).payerType(TokenPayerType.GROUP)
                 .tokenCount(changedToken)
                 .tokenTransactionType(type).operatorId(operator).meta(Meta).build();
         tokenTransactionRecordMapper.insert(record);
@@ -271,7 +271,7 @@ public class WalletServiceImpl implements IWalletService {
     @Override
     public void transferTokenBetweenGroupAndUser(Long userId, Long groupId, Integer tokenCount, TokenTransferType tokenTransferType) {
         GroupEntity groupEntity = groupMapper.selectById(groupId);
-        UserWalletEntity userWalletEntity = userWalletsMapper.selectById(groupId);
+        UserWalletEntity userWalletEntity = userWalletsMapper.selectById(userId);
 
         if (GroupType.ADVANCED_GROUP != groupEntity.getGroupType()) {
             throw new ServiceException(GroupErrorCode.GROUP_HAS_NO_QUOTA);
