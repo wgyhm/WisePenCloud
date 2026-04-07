@@ -7,7 +7,7 @@ import java.time.LocalDateTime;
 
 @Data
 public class WalletTransactionRecordResponse {
-	Long traceId;
+	String traceId;
 	LocalDateTime createTime;
 	TokenTransactionType tokenTransactionType;
 	Long amount;
