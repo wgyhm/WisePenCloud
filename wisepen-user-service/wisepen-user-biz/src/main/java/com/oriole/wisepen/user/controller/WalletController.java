@@ -51,10 +51,11 @@ public class WalletController {
     @GetMapping("/listTransactions")
     public R<PageResult<WalletTransactionRecordResponse>> listTransactions(
             @RequestParam(value = "groupId", required = false) Long groupId,
-            @RequestParam(value = "type", required = false) TokenTransactionType tokenTransactionType,
+            @RequestParam(value = "type", required = false) Integer type,
             @RequestParam(value = "page", defaultValue = "1") @Min(1) Integer page,
             @RequestParam(value = "size", defaultValue = "20") @Min(1) Integer size
             ) {
+        TokenTransactionType tokenTransactionType = TokenTransactionType.getByCode(type);
         TokenPayerType payerType;
         Long payerId;
         if (groupId == null) {
