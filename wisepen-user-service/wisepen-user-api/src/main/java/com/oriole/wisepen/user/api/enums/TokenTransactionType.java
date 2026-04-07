@@ -2,8 +2,11 @@ package com.oriole.wisepen.user.api.enums;
 
 import com.baomidou.mybatisplus.annotation.EnumValue;
 import com.fasterxml.jackson.annotation.JsonValue;
+import com.oriole.wisepen.common.core.domain.enums.GroupRoleType;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+
+import java.util.Arrays;
 
 @Getter
 @AllArgsConstructor
@@ -18,4 +21,12 @@ public enum TokenTransactionType {
 	private final int code;
 
 	private final String desc;
+
+	public static TokenTransactionType getByCode(Integer code) {
+		if (code == null) {return null;}
+		return Arrays.stream(values())
+				.filter(t -> t.getCode() == code)
+				.findFirst()
+				.orElse(null);
+	}
 }
