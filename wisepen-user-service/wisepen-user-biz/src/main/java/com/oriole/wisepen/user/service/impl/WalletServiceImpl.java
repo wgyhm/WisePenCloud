@@ -205,7 +205,7 @@ public class WalletServiceImpl implements IWalletService {
         GroupMemberEntity member = groupMemberMapper.selectOne(queryWrapper);
 
         Integer groupTokenBalance = member.getTokenLimit()  - member.getTokenUsed();
-        Integer overageTokenBill = 0;
+        int overageTokenBill = 0;
         // 如果当前余额不足以支付订单
         if (groupTokenBalance < tokenBill){
             overageTokenBill  = tokenBill - groupTokenBalance; // 超支部分，转个人支付
