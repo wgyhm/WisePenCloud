@@ -2,7 +2,6 @@ package com.oriole.wisepen.user.api.enums;
 
 import com.baomidou.mybatisplus.annotation.EnumValue;
 import com.fasterxml.jackson.annotation.JsonValue;
-import com.oriole.wisepen.common.core.domain.enums.GroupRoleType;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
