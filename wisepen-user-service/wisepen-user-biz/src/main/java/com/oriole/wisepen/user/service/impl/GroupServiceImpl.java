@@ -101,7 +101,9 @@ public class GroupServiceImpl implements IGroupService {
         if (group == null) {
             throw new ServiceException(GroupErrorCode.GROUP_NOT_EXIST);
         }
-        walletService.transferTokenBetweenGroupAndUser(userId, groupId, group.getTokenBalance(), TokenTransferType.USER_INFLOW);
+        if (group.getGroupType()==GroupType.ADVANCED_GROUP) {
+            walletService.transferTokenBetweenGroupAndUser(userId, groupId, group.getTokenBalance(), TokenTransferType.USER_INFLOW);
+        }
         groupMapper.deleteById(groupId);
         groupMemberService.removeAllGroupMembers(groupId);
 
