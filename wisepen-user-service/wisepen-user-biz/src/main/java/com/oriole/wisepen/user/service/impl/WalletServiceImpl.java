@@ -357,7 +357,7 @@ public class WalletServiceImpl implements IWalletService {
                 .map(record -> {
                     WalletTransactionRecordResponse response = BeanUtil.copyProperties(record, WalletTransactionRecordResponse.class);
                     if (record.getOperatorId() != null) {
-                        response.setOperator(operatorInfoMap.get(record.getOperatorId()));
+                        response.setOperatorDisplay(operatorInfoMap.get(record.getOperatorId()));
                     }
                     return response;
                 })
