@@ -10,7 +10,7 @@ public class WalletTransactionRecordResponse {
 	String traceId;
 	LocalDateTime createTime;
 	TokenTransactionType tokenTransactionType;
-	Long amount;
+	Long tokenCount;
 	String meta;
 	String operatorName;
 }

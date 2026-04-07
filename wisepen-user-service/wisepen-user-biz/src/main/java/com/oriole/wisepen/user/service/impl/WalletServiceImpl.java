@@ -35,6 +35,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -47,6 +48,7 @@ public class WalletServiceImpl implements IWalletService {
     private final GroupMapper groupMapper;
     private final GroupMemberMapper groupMemberMapper;
     private final UserWalletsMapper userWalletsMapper;
+    private final UserMapper userMapper;
     private final TokenTransactionRecordMapper tokenTransactionRecordMapper;
     private final TokenVoucherMapper tokenVoucherMapper;
 
@@ -340,9 +342,21 @@ public class WalletServiceImpl implements IWalletService {
         if (CollectionUtils.isEmpty(transactionPage.getRecords())) {
             return pageResult;
         }
+        List<Long> operatorIds = transactionPage.getRecords().stream()
+                .map(TokenTransactionRecordEntity::getOperatorId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .collect(Collectors.toList());
+
+        Map<Long, String> operatorNameMap = userMapper.selectBatchIds(operatorIds).stream()
+                .collect(Collectors.toMap(UserEntity::getUserId, UserEntity::getUsername, (left, right) -> left));
 
         List<WalletTransactionRecordResponse> records = transactionPage.getRecords().stream()
-                .map(record -> BeanUtil.copyProperties(record, WalletTransactionRecordResponse.class))
+                .map(record -> {
+                    WalletTransactionRecordResponse response = BeanUtil.copyProperties(record, WalletTransactionRecordResponse.class);
+                    response.setOperatorName(operatorNameMap.get(record.getOperatorId()));
+                    return response;
+                })
                 .collect(Collectors.toList());
         pageResult.addAll(records);
         return pageResult;
