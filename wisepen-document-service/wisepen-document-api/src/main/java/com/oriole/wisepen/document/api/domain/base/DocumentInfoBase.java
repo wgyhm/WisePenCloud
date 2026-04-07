@@ -11,6 +11,7 @@ import lombok.experimental.SuperBuilder;
 @NoArgsConstructor
 @AllArgsConstructor
 public class DocumentInfoBase {
+    private DocumentUploadMeta uploadMeta;
     private DocumentStatus documentStatus;
     private Integer maxPreviewPages;
 }

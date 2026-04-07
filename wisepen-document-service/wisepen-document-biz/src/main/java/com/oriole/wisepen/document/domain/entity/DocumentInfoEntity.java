@@ -2,7 +2,6 @@ package com.oriole.wisepen.document.domain.entity;
 
 import com.oriole.wisepen.document.api.domain.base.DocumentInfoBase;
 import com.oriole.wisepen.document.api.domain.base.DocumentUploadMeta;
-import com.oriole.wisepen.resource.enums.ResourceType;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -12,7 +11,6 @@ import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.mongodb.core.mapping.Document;
-import org.springframework.data.mongodb.core.mapping.Field;
 
 import java.time.LocalDateTime;
 
@@ -29,8 +27,6 @@ public class DocumentInfoEntity extends DocumentInfoBase {
 
     /** 关联的资源服务 ID (延迟绑定：初始化时为 null，解析成功后回写) */
     private String resourceId;
-
-    private DocumentUploadMeta uploadMeta;
 
     /** 原始文件在 OSS 中的 ObjectKey（由 storage 服务分配） */
     private String sourceObjectKey;
