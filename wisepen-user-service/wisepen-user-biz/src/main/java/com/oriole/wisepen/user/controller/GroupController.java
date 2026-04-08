@@ -81,11 +81,11 @@ public class GroupController {
 
 	@GetMapping("/list")
 	public R<PageResult<GroupItemInfoResponse>> listGroups(
-			@RequestParam GroupRoleFilter groupListType,
+			@RequestParam GroupRoleFilter groupRoleFilter,
 			@RequestParam(value = "page", defaultValue = "1") int page,
 			@RequestParam(value = "size", defaultValue = "20") int size
 	) {
-		return R.ok(groupService.getGroupList(SecurityContextHolder.getUserId(), groupListType, page, size));
+		return R.ok(groupService.getGroupList(SecurityContextHolder.getUserId(), groupRoleFilter, page, size));
 	}
 
 	@GetMapping("/getGroupBaseInfo")
