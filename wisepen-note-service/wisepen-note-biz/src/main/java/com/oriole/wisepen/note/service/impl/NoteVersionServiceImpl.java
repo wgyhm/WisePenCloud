@@ -22,6 +22,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.*;
 
 @Slf4j
@@ -38,7 +39,7 @@ public class NoteVersionServiceImpl implements INoteVersionService {
         NoteVersionEntity noteVersionEntity = NoteVersionEntity.builder()
                 .type(VersionType.valueOf(msg.getType()))
                 .data(new Binary(Base64.getDecoder().decode(msg.getData())))
-                .createdAt(new Date())
+                .createdAt(LocalDateTime.now())
                 .createdBy(updatedBy)
                 .build();
         BeanUtils.copyProperties(msg, noteVersionEntity, "type","data");
@@ -50,7 +51,7 @@ public class NoteVersionServiceImpl implements INoteVersionService {
     private void updateNoteDocumentMetadata(NoteSnapshotMessage msg, List<Long> currentRoundAuthors) {
         noteDocumentRepository.findByResourceId(msg.getResourceId()).ifPresent(noteInfo -> {
             // 更新最后修改时间
-            noteInfo.setLastUpdatedAt(new Date());
+            noteInfo.setLastUpdatedAt(LocalDateTime.now());
             if (currentRoundAuthors != null && !currentRoundAuthors.isEmpty()) {
                 // 将现有的作者和当前的作者合并，利用 CollUtil.distinct 自动去重
                 List<Long> existing = noteInfo.getAuthors() == null ? CollUtil.newArrayList() : noteInfo.getAuthors();

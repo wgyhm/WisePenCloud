@@ -33,6 +33,7 @@ import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -301,7 +302,7 @@ public class WalletServiceImpl implements IWalletService {
         // 兑换券已被使用
         if (voucher.getStatus() == VoucherStatus.USED) throw new ServiceException(GroupErrorCode.VOUCHER_IS_USED);
         // 兑换券已过期
-        if (voucher.getExpireTime() != null && !new Date().before(voucher.getExpireTime())) throw new ServiceException(GroupErrorCode.VOUCHER_IS_EXPIRED);
+        if (voucher.getExpireTime() != null && !LocalDateTime.now().isBefore(voucher.getExpireTime())) throw new ServiceException(GroupErrorCode.VOUCHER_IS_EXPIRED);
 
         String voucherCodeMasked = "****-****-****-" + voucherCode.substring(voucherCode.length() - 4);
         // 先消费 Voucher

@@ -24,6 +24,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -59,7 +60,7 @@ public class GroupMemberServiceImpl implements IGroupMemberService {
 	public void joinGroup(Long groupId, Long userId, GroupRoleType groupRoleType) {
 		GroupMemberEntity member = GroupMemberEntity.builder()
 				.groupId(groupId).userId(userId)
-				.role(groupRoleType).joinTime(new Date())
+				.role(groupRoleType).joinTime(LocalDateTime.now())
 				.tokenLimit(0).tokenUsed(0)
 				.build();
 		groupMemberMapper.insert(member);
