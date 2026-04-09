@@ -33,6 +33,12 @@ public class WalletController {
         return R.ok(walletService.getUserWalletInfo(userId));
     }
 
+    @GetMapping("/getGroupWalletInfo")
+    public R<WalletDetailResponse> getGroupWalletInfo(@RequestParam(value = "groupId") Long groupId) {
+        SecurityContextHolder.assertGroupRole(groupId, GroupRoleType.OWNER);
+        return R.ok(walletService.getGroupWalletInfo(groupId));
+    }
+
     @PostMapping("/redeemVoucher")
     public R<Void> redeemVoucher(@RequestBody WalletRedeemVoucherRequest req) {
         Long userId = SecurityContextHolder.getUserId();

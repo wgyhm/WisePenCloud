@@ -46,6 +46,8 @@ public interface IWalletService {
 
     // 获取个人钱包详情
     WalletDetailResponse getUserWalletInfo(Long userId);
+    // 获取小组钱包详情
+    WalletDetailResponse getGroupWalletInfo(Long groupId);
 
     // 批量获得用户所有小组的 Token 信息
     PageResult<GroupMemberTokenDetailResponse> getAllGroupTokenInfoByUserId(Long userId, Integer page, Integer size);

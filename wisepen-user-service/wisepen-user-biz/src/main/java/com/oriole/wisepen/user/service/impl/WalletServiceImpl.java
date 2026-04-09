@@ -375,6 +375,12 @@ public class WalletServiceImpl implements IWalletService {
     }
 
     @Override
+    public WalletDetailResponse getGroupWalletInfo(Long groupId) {
+        GroupEntity group = groupMapper.selectById(groupId);
+        return BeanUtil.copyProperties(group, WalletDetailResponse.class);
+    }
+
+    @Override
     public PageResult<GroupMemberTokenDetailResponse> getAllGroupTokenInfoByUserId(Long userId, Integer page, Integer size) {
         Page<GroupMemberEntity> pageParam = new Page<>(page, size);
         LambdaQueryWrapper<GroupMemberEntity> wrapper = new LambdaQueryWrapper<>();
