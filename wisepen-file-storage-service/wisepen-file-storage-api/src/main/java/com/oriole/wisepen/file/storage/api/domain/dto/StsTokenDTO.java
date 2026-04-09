@@ -7,7 +7,7 @@ import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
 
 import java.io.Serializable;
-import java.util.Date;
+import java.time.LocalDateTime;
 
 @Data
 @SuperBuilder
@@ -19,5 +19,5 @@ public class StsTokenDTO implements Serializable {
     private String securityToken;
     private String bucket;
     private String region;
-    private Date expiration;
+    private LocalDateTime expiration;
 }

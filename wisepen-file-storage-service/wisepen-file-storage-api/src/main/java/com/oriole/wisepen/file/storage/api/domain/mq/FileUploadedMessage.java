@@ -13,4 +13,5 @@ import java.io.Serializable;
 @NoArgsConstructor
 public class FileUploadedMessage extends StorageRecordDTO implements Serializable {
     private StorageSceneEnum scene;
+    private Boolean flashUploaded;
 }

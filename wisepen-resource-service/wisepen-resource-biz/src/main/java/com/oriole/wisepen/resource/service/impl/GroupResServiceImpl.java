@@ -47,17 +47,28 @@ public class GroupResServiceImpl implements IGroupResService {
 
     @Override
     public void upsertGroupResConfig(GroupResConfigUpdateRequest req) {
-        // 获取现有配置以作为对比基准
-        GroupResConfigEntity existingConfig = groupResConfigRepository.findByGroupId(req.getGroupId()).orElse(new GroupResConfigEntity());
-        // 获取旧的掩码：如果配置不存在，则系统此前的默认表现是 DEFAULT_MEMBER_ACTIONS
-        Integer oldDefaultMask = existingConfig.getDefaultMemberActionsMask() != null
-                ? existingConfig.getDefaultMemberActionsMask() : ResourceAction.DEFAULT_MEMBER_ACTIONS;
+        GroupResConfigEntity entity = groupResConfigRepository.findByGroupId(req.getGroupId())
+                .orElseGet(() -> {
+                    GroupResConfigEntity newEntity = new GroupResConfigEntity();
+                    newEntity.setGroupId(req.getGroupId());
+                    newEntity.setDefaultMemberActionsMask(ResourceAction.DEFAULT_MEMBER_ACTIONS);
+                    return newEntity;
+                });
+        boolean shouldRecalculate = false;
 
-        GroupResConfigEntity entity = BeanUtil.copyProperties(req, GroupResConfigEntity.class);
+        if (req.getDefaultMemberActions() != null) {
+            Integer newMask = ResourceAction.actionsToPermissionCode(req.getDefaultMemberActions());
+            if (!Objects.equals(entity.getDefaultMemberActionsMask(), newMask)) {
+                entity.setDefaultMemberActionsMask(newMask);
+                shouldRecalculate = true;
+            }
+        }
+
+        if (req.getFileOrgLogic() != null) entity.setFileOrgLogic(req.getFileOrgLogic());
         groupResConfigRepository.save(entity);
 
         // 如果兜底掩码发生了实质性变化，触发该组所有资源的重算
-        if (entity.getDefaultMemberActionsMask() != null && !Objects.equals(oldDefaultMask, entity.getDefaultMemberActionsMask())) {
+        if (shouldRecalculate) {
             // 从 MongoDB 查出所有绑定了该组的资源 ID
             List<ResourceItemEntity> affectedResources = resourceItemRepository.findByGroupId(req.getGroupId());
             if (affectedResources != null && !affectedResources.isEmpty()) {

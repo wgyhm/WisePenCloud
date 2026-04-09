@@ -18,8 +18,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 
 @Slf4j
@@ -45,7 +45,7 @@ public class NoteServiceImpl implements INoteService {
 
         NoteInfoEntity doc = NoteInfoEntity.builder()
                 .resourceId(resourceId)
-                .lastUpdatedAt(new Date())
+                .lastUpdatedAt(LocalDateTime.now())
                 .authors(authors)
                 .build();
         noteDocumentRepository.save(doc);

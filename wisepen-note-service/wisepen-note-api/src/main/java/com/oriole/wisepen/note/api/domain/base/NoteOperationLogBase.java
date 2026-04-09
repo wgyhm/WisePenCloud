@@ -5,7 +5,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
 
-import java.util.Date;
+import java.time.LocalDateTime;
 
 @Data
 @SuperBuilder
@@ -15,7 +15,7 @@ public class NoteOperationLogBase {
     private String userId;
     private String operationType;
     private String contentSummary;
-    private Date timestamp;
+    private LocalDateTime timestamp;
     /** 合并的原子操作数（颗粒度合并时 >1） */
     private Integer mergedCount;
     /** BlockNote 树状突变详情 */

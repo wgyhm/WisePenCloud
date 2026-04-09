@@ -10,9 +10,7 @@ import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
 
 import java.io.Serial;
-import java.io.Serializable;
 import java.time.LocalDateTime;
-import java.util.Date;
 
 @EqualsAndHashCode(callSuper = true)
 @Data
@@ -31,7 +29,7 @@ public class GroupEntity extends GroupInfoBase {
     @TableField("del_flag")
     private Integer delFlag;
 
-    private Date createTime;
+    private LocalDateTime createTime;
 
-    private Date updateTime;
+    private LocalDateTime updateTime;
 }

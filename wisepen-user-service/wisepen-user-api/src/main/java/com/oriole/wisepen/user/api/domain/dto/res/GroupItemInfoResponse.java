@@ -5,7 +5,7 @@ import com.oriole.wisepen.user.api.domain.base.UserDisplayBase;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
-import java.util.Date;
+import java.time.LocalDateTime;
 
 @EqualsAndHashCode(callSuper = true)
 @Data
@@ -14,5 +14,5 @@ public class GroupItemInfoResponse extends GroupDisplayBase {
 	private Long ownerId;
 	private UserDisplayBase ownerInfo;
 	private Integer memberCount;
-	private Date createTime;
+	private LocalDateTime createTime;
 }

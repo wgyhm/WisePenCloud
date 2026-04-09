@@ -4,8 +4,6 @@ import com.oriole.wisepen.note.api.domain.base.NoteOperationLogBase;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
-import java.util.Date;
-
 @EqualsAndHashCode(callSuper = true)
 @Data
 public class NoteOperationLogResponse extends NoteOperationLogBase {

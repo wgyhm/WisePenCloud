@@ -6,7 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
 
-import java.util.Date;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Data
@@ -17,6 +17,6 @@ public class NoteVersionBase {
     private Long version;
     private VersionType type;
     private String label;
-    private Date createdAt;
+    private LocalDateTime createdAt;
     private List<Long> createdBy;
 }

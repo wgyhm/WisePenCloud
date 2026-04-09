@@ -34,6 +34,8 @@ import java.security.KeyFactory;
 import java.security.PublicKey;
 import java.security.Signature;
 import java.security.spec.X509EncodedKeySpec;
+import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.Map;
 import java.util.Scanner;
@@ -68,7 +70,7 @@ public class AliyunOssProvider implements StorageProvider {
 
     @Override
     public UploadUrlBase generateUploadTicket(String objectKey, long durationSeconds, String apiDomain) {
-        Date expiration = new Date(System.currentTimeMillis() + durationSeconds * 1000L);
+        Date expirationDate = Date.from(Instant.now().plusSeconds(durationSeconds));
         String callbackUrl = apiDomain.replaceAll("/+$", "") + "/external/storage/callback/upload";
 
         try {
@@ -84,7 +86,7 @@ public class AliyunOssProvider implements StorageProvider {
             // 生成 PUT 方法的预签名 URL，供前端直传
             GeneratePresignedUrlRequest request =
                     new com.aliyun.oss.model.GeneratePresignedUrlRequest(config.getBucketName(), objectKey, HttpMethod.PUT);
-            request.setExpiration(expiration);
+            request.setExpiration(expirationDate);
             request.setContentType("application/octet-stream");
             java.util.Map<String, String> headers = new java.util.HashMap<>();
             headers.put("x-oss-callback", callbackBase64);
@@ -106,9 +108,9 @@ public class AliyunOssProvider implements StorageProvider {
     @Override
     public String generateDownloadUrl(String objectKey, long durationSeconds) {
         try {
-            Date expiration = new Date(System.currentTimeMillis() + durationSeconds * 1000L);
+            Date expirationDate = Date.from(Instant.now().plusSeconds(durationSeconds));
             // 生成 GET 方法的预签名 URL，供私有文件下载
-            URL url = ossClient.generatePresignedUrl(config.getBucketName(), objectKey, expiration, HttpMethod.GET);
+            URL url = ossClient.generatePresignedUrl(config.getBucketName(), objectKey, expirationDate, HttpMethod.GET);
             return url.toString();
         } catch (Exception e) {
             log.error("OSS Generate Presigned Url 失败: {}", objectKey, e);
@@ -186,7 +188,7 @@ public class AliyunOssProvider implements StorageProvider {
                     .accessKeyId(response.getBody().getCredentials().getAccessKeyId())
                     .accessKeySecret(response.getBody().getCredentials().getAccessKeySecret())
                     .securityToken(response.getBody().getCredentials().getSecurityToken())
-                    .expiration(new Date(System.currentTimeMillis() + durationSeconds * 1000L))
+                    .expiration(LocalDateTime.now().plusSeconds(durationSeconds))
                     .region(config.getRegion()).bucket(config.getBucketName())
                     .build();
 

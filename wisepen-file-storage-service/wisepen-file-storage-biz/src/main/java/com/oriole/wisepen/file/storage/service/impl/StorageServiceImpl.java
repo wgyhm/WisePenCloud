@@ -86,7 +86,7 @@ public class StorageServiceImpl implements IStorageService {
 
             FileUploadedMessage fileUploadedMessage = BeanUtil.copyProperties(newRecord, FileUploadedMessage.class);
             fileUploadedMessage.setDomain(provider.getDomain());
-
+            fileUploadedMessage.setFlashUploaded(true);
             // 发送 Kafka 事件
             eventPublisher.publishFileUploadedEvent(fileUploadedMessage);
 
@@ -221,6 +221,7 @@ public class StorageServiceImpl implements IStorageService {
 
         FileUploadedMessage fileUploadedMessage = BeanUtil.copyProperties(record, FileUploadedMessage.class);
         fileUploadedMessage.setDomain(provider.getDomain());
+        fileUploadedMessage.setFlashUploaded(false); // 非秒传
 
         eventPublisher.publishFileUploadedEvent(fileUploadedMessage);
         log.info("云端直传文件回调落库: {}/{}", provider.getDomain(), objectKey);
@@ -277,7 +278,11 @@ public class StorageServiceImpl implements IStorageService {
             dto.setDomain(provider.getDomain());
 
             // 补发 Kafka 消息
-            eventPublisher.publishFileUploadedEvent(BeanUtil.copyProperties(record, FileUploadedMessage.class));
+            FileUploadedMessage fileUploadedMessage = BeanUtil.copyProperties(record, FileUploadedMessage.class);
+            fileUploadedMessage.setDomain(provider.getDomain());
+            fileUploadedMessage.setFlashUploaded(false);
+
+            eventPublisher.publishFileUploadedEvent(fileUploadedMessage);
 
             log.info("文件状态已更新, 本地处于 AVAILABLE: {}/{}", provider.getDomain(), record.getObjectKey());
             return dto;

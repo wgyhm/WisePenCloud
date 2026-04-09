@@ -24,6 +24,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -34,16 +35,9 @@ import static java.lang.Math.min;
 @RequiredArgsConstructor
 public class GroupMemberServiceImpl implements IGroupMemberService {
 
-	private final ApplicationEventPublisher eventPublisher;
-
-	private final GroupMapper groupMapper;
 	private final GroupMemberMapper groupMemberMapper;
 	private final IUserService userService;
-	private final UserMapper userMapper;
 	private final RedisCacheManager redisCacheManager;
-	private final UserWalletsMapper userWalletsMapper;
-	private final TokenTransactionRecordMapper tokenRecordMapper;
-	private final TokenVoucherMapper tokenVoucherMapper;
 
 	@Override
 	public Map<String, Integer> getGroupRoleMapByUserId(Long userId) {
@@ -66,7 +60,7 @@ public class GroupMemberServiceImpl implements IGroupMemberService {
 	public void joinGroup(Long groupId, Long userId, GroupRoleType groupRoleType) {
 		GroupMemberEntity member = GroupMemberEntity.builder()
 				.groupId(groupId).userId(userId)
-				.role(groupRoleType).joinTime(new Date())
+				.role(groupRoleType).joinTime(LocalDateTime.now())
 				.tokenLimit(0).tokenUsed(0)
 				.build();
 		groupMemberMapper.insert(member);

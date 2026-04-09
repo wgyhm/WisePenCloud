@@ -54,8 +54,8 @@ public class FileUploadedConsumer {
     }
 
     private void process(FileUploadedMessage msg) {
-        if (msg.getScene() != StorageSceneEnum.PRIVATE_DOC){
-            return; // 不处理
+        if (msg.getScene() != StorageSceneEnum.PRIVATE_DOC || Boolean.TRUE.equals(msg.getFlashUploaded())){
+            return; // 不处理非PRIVATE_DOC的上传通知，也不处理秒传的
         }
 
         DocumentInfoEntity entity = documentInfoRepository.findBySourceObjectKeyOrPreviewObjectKey(msg.getObjectKey()).orElse(null);

@@ -7,14 +7,14 @@ import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
 
 import java.io.Serializable;
-import java.util.Date;
+import java.time.LocalDateTime;
 
 @Data
 @SuperBuilder
 @NoArgsConstructor
 public class GroupMemberBase implements Serializable {
     private GroupRoleType role; // 用户角色
-    private Date joinTime; // 加入时间
+    private LocalDateTime joinTime; // 加入时间
 
     private Integer tokenLimit;
     private Integer tokenUsed;

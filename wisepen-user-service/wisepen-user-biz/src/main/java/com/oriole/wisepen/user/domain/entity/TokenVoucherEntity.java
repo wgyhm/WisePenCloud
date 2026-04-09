@@ -10,7 +10,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.io.Serializable;
-import java.util.Date;
+import java.time.LocalDateTime;
 
 @Data
 @Builder
@@ -25,5 +25,5 @@ public class TokenVoucherEntity implements Serializable {
 	private String code;
 	private Integer amount;
 	private VoucherStatus status;
-	private Date expireTime;
+	private LocalDateTime expireTime;
 }

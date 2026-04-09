@@ -34,6 +34,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -85,7 +86,7 @@ public class GroupServiceImpl implements IGroupService {
     @Override
     public void updateGroup(GroupUpdateRequest req) {
         GroupEntity group = BeanUtil.copyProperties(req, GroupEntity.class);
-        group.setUpdateTime(new Date());
+        group.setUpdateTime(LocalDateTime.now());
         int rows = groupMapper.updateById(group);
         if (rows == 0) {
             throw new ServiceException(GroupErrorCode.GROUP_NOT_EXIST);

@@ -80,25 +80,37 @@ public class DocumentServiceImpl implements IDocumentService {
             throw new ServiceException(DocumentErrorCode.DOCUMENT_UPLOAD_ERROR, e.getMessage());
         }
 
-        // NOTE: 无需检查是否为快传，Kafka将收到并处理文件上传成功的消息
-
         DocumentUploadMeta meta = DocumentUploadMeta.builder().fileType(fileType)
                 .documentName(request.getFilename())
                 .size(request.getExpectedSize())
                 .uploaderId(uploaderId).build();
 
-        DocumentInfoEntity doc = DocumentInfoEntity.builder()
+        DocumentInfoEntity entity = DocumentInfoEntity.builder()
                 .documentId(documentId)
                 .uploadMeta(meta)
                 .sourceObjectKey(uploadInitRespDTO.getObjectKey())
-                .documentStatus(new DocumentStatus(DocumentStatusEnum.UPLOADING)).build();
-        documentInfoRepository.save(doc);
+                .documentStatus(new DocumentStatus(
+                        uploadInitRespDTO.getFlashUploaded()?
+                        DocumentStatusEnum.UPLOADED : DocumentStatusEnum.UPLOADING
+                )).build();
+        documentInfoRepository.save(entity);
 
         log.info("文档上传初始化完成 DocumentId={} | ObjectKey={} | FlashUploaded={}",
                 documentId, uploadInitRespDTO.getObjectKey(), uploadInitRespDTO.getFlashUploaded());
 
         DocumentUploadInitResponse resp = BeanUtil.copyProperties(uploadInitRespDTO, DocumentUploadInitResponse.class);
         resp.setDocumentId(documentId);
+
+        if (uploadInitRespDTO.getFlashUploaded()) {
+            // 如果触发秒传
+            eventPublisher.publishParseTask(
+                    DocumentParseTaskMessage.builder()
+                            .documentId(entity.getDocumentId())
+                            .sourceObjectKey(entity.getSourceObjectKey())
+                            .fileType(entity.getUploadMeta().getFileType())
+                            .build()
+            );
+        }
         return resp;
     }
 
