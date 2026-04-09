@@ -281,8 +281,24 @@ public class ResourceServiceImpl implements IResourceService {
         }
         resp.setOwnerInfo(userDisplayBase);
 
-        // 处理标签回显
-        List<String> allTagIds = extractRelevantTagIds(entity, null);
+        // 处理标签回显：只返回用户有权访问的组的标签
+        Set<String> accessibleGroupIds = dto.getGroupRoles() == null
+                ? new HashSet<>()
+                : dto.getGroupRoles().keySet().stream().map(String::valueOf).collect(Collectors.toSet());
+        if (dto.getUserId().toString().equals(entity.getOwnerId())) {
+            accessibleGroupIds.add(ResourceConstants.PERSONAL_GROUP_PREFIX + dto.getUserId());
+        }
+
+        List<String> allTagIds = entity.getGroupBinds() == null
+                ? Collections.emptyList()
+                : entity.getGroupBinds().stream()
+                    .filter(bind -> accessibleGroupIds.contains(bind.getGroupId()))
+                    .map(GroupTagBind::getTagIds)
+                    .filter(Objects::nonNull)
+                    .flatMap(List::stream)
+                    .distinct()
+                    .collect(Collectors.toList());
+
         Map<String, String> tagMap = new HashMap<>();
         if (!allTagIds.isEmpty()) {
             Iterable<TagEntity> tagEntities = tagRepository.findAllById(allTagIds);
@@ -343,7 +359,13 @@ public class ResourceServiceImpl implements IResourceService {
         Map<String, List<String>> resourceTagIdsMap = new HashMap<>(); // 缓存 ResourceId -> TagIds
 
         for (ResourceItemEntity entity : entityPage.getContent()) {
-            List<String> extractedTagIds = extractRelevantTagIds(entity, groupId);
+            List<String> extractedTagIds = (entity.getGroupBinds() == null)
+                    ? Collections.emptyList()
+                    : entity.getGroupBinds().stream()
+                        .filter(bind -> bind.getGroupId().equals(groupId))
+                        .findFirst()
+                        .map(GroupTagBind::getTagIds)
+                        .orElse(Collections.emptyList());
             resourceTagIdsMap.put(entity.getResourceId(), extractedTagIds);
             allTagIdsToFetch.addAll(extractedTagIds);
         }
@@ -379,29 +401,6 @@ public class ResourceServiceImpl implements IResourceService {
         return pageResult;
     }
 
-    // 辅助方法：提取资源的 TagId 供前端回显
-    private List<String> extractRelevantTagIds(ResourceItemEntity entity, String groupId) {
-        if (entity.getGroupBinds() == null) {
-            return Collections.emptyList();
-        }
-
-        if (StringUtils.hasText(groupId)) {
-            // 如果处于某个特定的小组内，只关心该文件在这个小组下挂了什么标签
-            return entity.getGroupBinds().stream()
-                    .filter(bind -> bind.getGroupId().equals(groupId))
-                    .findFirst()
-                    .map(GroupTagBind::getTagIds)
-                    .orElse(Collections.emptyList());
-        } else {
-            // 否则提取该文件在所有空间下挂载的全部标签，并去重
-            return entity.getGroupBinds().stream()
-                    .map(GroupTagBind::getTagIds)
-                    .filter(Objects::nonNull)
-                    .flatMap(List::stream)
-                    .distinct()
-                    .collect(Collectors.toList());
-        }
-    }
 
     @Override
     public String createResourceItem(ResourceCreateReqDTO dto) {

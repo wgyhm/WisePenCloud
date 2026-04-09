@@ -109,8 +109,10 @@ public class ResourceItemController {
         String userId = SecurityContextHolder.getUserId().toString();
 
         GroupRoleType userGroupRole = null;
-        if (StringUtils.hasText(groupId)) {
-            userGroupRole = SecurityContextHolder.assertInGroup(Long.valueOf(groupId)); // 不传groupId无需检查小组权限
+        if (!StringUtils.hasText(groupId)) {
+            groupId = ResourceConstants.PERSONAL_GROUP_PREFIX + userId;
+        } else {
+            userGroupRole = SecurityContextHolder.assertInGroup(Long.valueOf(groupId));
         }
 
         PageResult<ResourceItemResponse> result = resourceService.listResources(
