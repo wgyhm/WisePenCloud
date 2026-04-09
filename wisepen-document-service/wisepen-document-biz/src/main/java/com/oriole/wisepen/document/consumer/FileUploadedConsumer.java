@@ -41,9 +41,6 @@ public class FileUploadedConsumer {
 
     private final DocumentInfoRepository documentInfoRepository;
     private final IDocumentService documentService;
-
-    private final RemoteStorageService remoteStorageService;
-
     private final KafkaDocumentEventPublisher eventPublisher;
     private final ObjectMapper objectMapper;
 

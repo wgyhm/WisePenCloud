@@ -70,7 +70,13 @@ public class DocumentConversionAndParseConsumer {
     @KafkaListener(topics = TOPIC_DOCUMENT_PARSE, groupId = "wisepen-document-parse-group")
     public void onDocumentParse(String payload) throws IOException, InterruptedException {
         DocumentParseTaskMessage msg = objectMapper.readValue(payload, DocumentParseTaskMessage.class);
-        process(msg);
+
+        try {
+            process(msg);
+        } catch (Exception e) {
+            log.error("文档解析失败: documentId={}", msg.getDocumentId(), e);
+            documentService.updateStatus(msg.getDocumentId(), new DocumentStatus(e.getMessage()));
+        }
     }
 
     private void process(DocumentParseTaskMessage msg) throws IOException, InterruptedException {
